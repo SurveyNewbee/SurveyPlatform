@@ -362,7 +362,40 @@ export default function ProjectPage() {
                         </div>
                         <p className="text-gray-700 mb-3">{q.question_text}</p>
                         
-                        {q.options && q.options.length > 0 && (
+                        {q.rows && q.columns ? (
+                          <div className="mt-4 overflow-x-auto">
+                            <div className="inline-block min-w-full">
+                              <table className="min-w-full border-collapse border border-gray-300">
+                                <thead>
+                                  <tr>
+                                    <th className="border border-gray-300 bg-gray-100 px-3 py-2 text-left text-xs font-medium text-gray-600 w-1/3">
+                                      
+                                    </th>
+                                    {q.columns.map((col: string, colIdx: number) => (
+                                      <th key={colIdx} className="border border-gray-300 bg-blue-50 px-2 py-2 text-center text-xs font-medium text-gray-700">
+                                        {col}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {q.rows.map((row: string, rowIdx: number) => (
+                                    <tr key={rowIdx} className="hover:bg-gray-50">
+                                      <td className="border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700 font-medium">
+                                        {row}
+                                      </td>
+                                      {q.columns.map((_: string, colIdx: number) => (
+                                        <td key={colIdx} className="border border-gray-300 px-2 py-2 text-center">
+                                          <div className="w-4 h-4 mx-auto rounded-full border-2 border-gray-400"></div>
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ) : q.options && q.options.length > 0 ? (
                           <div className="mt-2">
                             <p className="text-xs font-medium text-gray-500 mb-1">Options:</p>
                             <ul className="space-y-1">
@@ -373,7 +406,7 @@ export default function ProjectPage() {
                               ))}
                             </ul>
                           </div>
-                        )}
+                        ) : null}
                         
                         {q.notes && (
                           <div className="mt-2 text-xs text-gray-500 italic border-t border-gray-200 pt-2">
@@ -421,7 +454,40 @@ export default function ProjectPage() {
                             </div>
                             <p className="text-gray-700 mb-3">{q.question_text}</p>
                             
-                            {q.options && q.options.length > 0 && (
+                            {q.rows && q.columns ? (
+                              <div className="mt-4 overflow-x-auto">
+                                <div className="inline-block min-w-full">
+                                  <table className="min-w-full border-collapse border border-gray-300">
+                                    <thead>
+                                      <tr>
+                                        <th className="border border-gray-300 bg-gray-100 px-3 py-2 text-left text-xs font-medium text-gray-600 w-1/3">
+                                          
+                                        </th>
+                                        {q.columns.map((col: string, colIdx: number) => (
+                                          <th key={colIdx} className="border border-gray-300 bg-green-50 px-2 py-2 text-center text-xs font-medium text-gray-700">
+                                            {col}
+                                          </th>
+                                        ))}
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {q.rows.map((row: string, rowIdx: number) => (
+                                        <tr key={rowIdx} className="hover:bg-gray-50">
+                                          <td className="border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700 font-medium">
+                                            {row}
+                                          </td>
+                                          {q.columns.map((_: string, colIdx: number) => (
+                                            <td key={colIdx} className="border border-gray-300 px-2 py-2 text-center">
+                                              <div className="w-4 h-4 mx-auto rounded-full border-2 border-gray-400"></div>
+                                            </td>
+                                          ))}
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            ) : q.options && q.options.length > 0 ? (
                               <div className="mt-2">
                                 <p className="text-xs font-medium text-gray-500 mb-1">Options:</p>
                                 <ul className="space-y-1">
@@ -432,17 +498,7 @@ export default function ProjectPage() {
                                   ))}
                                 </ul>
                               </div>
-                            )}
-                            
-                            {q.rows && q.columns && (
-                              <div className="mt-2">
-                                <p className="text-xs font-medium text-gray-500 mb-1">Matrix Grid:</p>
-                                <div className="text-xs text-gray-600 ml-4">
-                                  <p>Rows: {q.rows.join(', ')}</p>
-                                  <p>Columns: {q.columns.join(', ')}</p>
-                                </div>
-                              </div>
-                            )}
+                            ) : null}
                             
                             {q.notes && (
                               <div className="mt-2 text-xs text-gray-500 italic border-t border-gray-200 pt-2">
@@ -489,7 +545,40 @@ export default function ProjectPage() {
                         </div>
                         <p className="text-gray-700 mb-3">{q.question_text}</p>
                         
-                        {q.options && q.options.length > 0 && (
+                        {q.rows && q.columns ? (
+                          <div className="mt-4 overflow-x-auto">
+                            <div className="inline-block min-w-full">
+                              <table className="min-w-full border-collapse border border-gray-300">
+                                <thead>
+                                  <tr>
+                                    <th className="border border-gray-300 bg-gray-100 px-3 py-2 text-left text-xs font-medium text-gray-600 w-1/3">
+                                      
+                                    </th>
+                                    {q.columns.map((col: string, colIdx: number) => (
+                                      <th key={colIdx} className="border border-gray-300 bg-purple-50 px-2 py-2 text-center text-xs font-medium text-gray-700">
+                                        {col}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {q.rows.map((row: string, rowIdx: number) => (
+                                    <tr key={rowIdx} className="hover:bg-gray-50">
+                                      <td className="border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700 font-medium">
+                                        {row}
+                                      </td>
+                                      {q.columns.map((_: string, colIdx: number) => (
+                                        <td key={colIdx} className="border border-gray-300 px-2 py-2 text-center">
+                                          <div className="w-4 h-4 mx-auto rounded-full border-2 border-gray-400"></div>
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        ) : q.options && q.options.length > 0 ? (
                           <div className="mt-2">
                             <p className="text-xs font-medium text-gray-500 mb-1">Options:</p>
                             <ul className="space-y-1">
@@ -500,7 +589,7 @@ export default function ProjectPage() {
                               ))}
                             </ul>
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     ))}
                   </div>
