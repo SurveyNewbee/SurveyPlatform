@@ -95,3 +95,44 @@ export async function deleteProject(projectId: string) {
     method: 'DELETE',
   });
 }
+
+// LOI Management
+export async function updateLOI(survey: any, sliderPosition: number) {
+  return fetchAPI<{ survey: any; loi_config: any }>('/api/update-loi', {
+    method: 'POST',
+    body: JSON.stringify({
+      survey,
+      slider_position: sliderPosition,
+    }),
+  });
+}
+
+export async function pinQuestion(survey: any, questionId: string) {
+  return fetchAPI<{ survey: any; loi_config: any }>('/api/pin-question', {
+    method: 'POST',
+    body: JSON.stringify({
+      survey,
+      question_id: questionId,
+    }),
+  });
+}
+
+export async function excludeQuestion(survey: any, questionId: string) {
+  return fetchAPI<{ survey: any; loi_config: any }>('/api/exclude-question', {
+    method: 'POST',
+    body: JSON.stringify({
+      survey,
+      question_id: questionId,
+    }),
+  });
+}
+
+export async function resetQuestionOverride(survey: any, questionId: string) {
+  return fetchAPI<{ survey: any; loi_config: any }>('/api/reset-question-override', {
+    method: 'POST',
+    body: JSON.stringify({
+      survey,
+      question_id: questionId,
+    }),
+  });
+}

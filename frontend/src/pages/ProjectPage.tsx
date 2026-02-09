@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProject, generateSurvey, updateProject } from '../api/client';
+import { getProject, generateSurvey, updateProject, updateLOI, pinQuestion, excludeQuestion, resetQuestionOverride } from '../api/client';
 import type { Project, ValidationLogEntry } from '../types';
+import LOISlider from '../components/LOISlider';
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -15,6 +16,7 @@ export default function ProjectPage() {
   const [generateError, setGenerateError] = useState<string | null>(null);
   
   const [selectedTab, setSelectedTab] = useState<'overview' | 'survey' | 'validation'>('overview');
+  const [loiCollapsed, setLoiCollapsed] = useState(false);
 
   useEffect(() => {
     loadProject();
@@ -95,6 +97,59 @@ export default function ProjectPage() {
       case 'warning': return 'text-yellow-600 bg-yellow-100 border-yellow-200';
       case 'info': return 'text-blue-600 bg-blue-100 border-blue-200';
       default: return 'text-gray-600 bg-gray-100 border-gray-200';
+    }
+  }
+
+  async function handleLOISliderChange(newPosition: number) {
+    if (!project || !project.survey_json || !projectId) return;
+
+    const response = await updateLOI(project.survey_json, newPosition);
+    
+    if (response.success && response.data) {
+      // Update project with new survey state
+      await updateProject(projectId, {
+        survey_json: response.data.survey,
+      });
+      await loadProject();
+    }
+  }
+
+  async function handlePinQuestion(questionId: string) {
+    if (!project || !project.survey_json || !projectId) return;
+
+    const response = await pinQuestion(project.survey_json, questionId);
+    
+    if (response.success && response.data) {
+      await updateProject(projectId, {
+        survey_json: response.data.survey,
+      });
+      await loadProject();
+    }
+  }
+
+  async function handleExcludeQuestion(questionId: string) {
+    if (!project || !project.survey_json || !projectId) return;
+
+    const response = await excludeQuestion(project.survey_json, questionId);
+    
+    if (response.success && response.data) {
+      await updateProject(projectId, {
+        survey_json: response.data.survey,
+      });
+      await loadProject();
+    }
+  }
+
+  async function handleResetQuestionOverride(questionId: string) {
+    if (!project || !project.survey_json || !projectId) return;
+
+    const response = await resetQuestionOverride(project.survey_json, questionId);
+    
+    if (response.success && response.data) {
+      await updateProject(projectId, {
+        survey_json: response.data.survey,
+      });
+      await loadProject();
     }
   }
 
@@ -284,14 +339,25 @@ export default function ProjectPage() {
 
       {/* Survey Tab */}
       {selectedTab === 'survey' && (
-        <div className="space-y-6">
+        <div className="space-y-0">
           {project.survey_json ? (
             <>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-green-900">
-                  ✓ Survey generated successfully
-                </p>
-              </div>
+              {/* LOI Slider */}
+              {project.survey_json.loi_config && (
+                <LOISlider
+                  loiConfig={project.survey_json.loi_config}
+                  onSliderChange={handleLOISliderChange}
+                  collapsed={loiCollapsed}
+                  onToggleCollapse={() => setLoiCollapsed(!loiCollapsed)}
+                />
+              )}
+
+              <div className="p-6 space-y-6">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-green-900">
+                    ✓ Survey generated successfully
+                  </p>
+                </div>
 
               {/* Study Metadata */}
               {project.survey_json.STUDY_METADATA && (
@@ -618,9 +684,10 @@ export default function ProjectPage() {
                   </button>
                 </div>
               </div>
+              </div>
             </>
           ) : (
-            <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded">
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded m-6">
               No survey generated yet. Go to the Overview tab to generate your survey.
             </div>
           )}
