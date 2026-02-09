@@ -378,7 +378,7 @@ class BriefExtractor:
         else:
             self.llm = ChatOpenAI(model=model_name, temperature=temperature)
 
-        self.parser = JsonOutputParser(pydantic_object=BriefExtraction)
+        self.parser = JsonOutputParser()
         
         # Load available skills metadata
         self.available_skills = load_skills_metadata()

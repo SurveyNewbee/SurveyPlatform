@@ -269,7 +269,7 @@ class SurveyGenerator:
             self.llm = ChatOpenAI(model=model_name, temperature=temperature)
 
         self.skills_dir = skills_dir
-        self.parser = JsonOutputParser(pydantic_object=Survey)
+        self.parser = JsonOutputParser()
         self.prompt = self._load_prompt()
         self.chain = self.prompt | self.llm | RunnableLambda(strip_task_plan) | self.parser
 
