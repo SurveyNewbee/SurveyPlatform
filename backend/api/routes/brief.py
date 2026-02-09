@@ -34,8 +34,11 @@ async def extract_brief(request: Dict[str, Any]) -> Dict[str, Any]:
             raise ValueError("Brief text must be at least 50 characters")
         
         # Create extractor and run
+        print(f"Creating BriefExtractor...")
         extractor = BriefExtractor()
+        print(f"Calling extract with brief_text length: {len(brief_text)}")
         result = extractor.extract(brief_text, stream_output=False)
+        print(f"Extract result: {result}")
         
         if not result:
             raise ValueError("Failed to extract brief - no result returned")

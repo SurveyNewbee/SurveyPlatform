@@ -8,6 +8,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseModel, field_validator, model_validator, ValidationError
 from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.runnables import RunnableLambda
@@ -266,7 +267,11 @@ class SurveyGenerator:
         if llm is not None:
             self.llm = llm
         else:
-            self.llm = ChatOpenAI(model=model_name, temperature=temperature)
+            # Use ChatAnthropic for Claude models, ChatOpenAI for OpenAI models
+            if model_name.startswith("claude"):
+                self.llm = ChatAnthropic(model=model_name, temperature=temperature)
+            else:
+                self.llm = ChatOpenAI(model=model_name, temperature=temperature)
 
         self.skills_dir = skills_dir
         self.parser = JsonOutputParser()

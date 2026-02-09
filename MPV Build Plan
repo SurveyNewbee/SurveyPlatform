@@ -1,0 +1,2243 @@
+# MVP Build Plan — Ad Hoc Survey Platform
+## Partnership Demo Build
+
+**Context:** This plan is for building toward a Previously Unavailable partnership demo. The goal is a full end-to-end loop: generate survey → edit → test/preview → launch → reporting. No hard deadline, but every piece should be demo-ready.
+
+**Build Order:** Skills → LOI → Edit → Test → Reporting → Launch
+
+---
+
+## Phase 1: Survey Skills (10 Use Cases)
+
+### Objective
+Update 10 existing Agent Skills to produce consultant-grade surveys for ad hoc use cases. Three "hero" skills get high polish; seven get functional correctness.
+
+### Hero Skills (High Polish)
+These will be used in live demos. Output must be indistinguishable from a senior research consultant's work.
+
+1. **Pricing Research** — Van Westendorp, Gabor-Granger, simplified conjoint for price-feature tradeoffs
+2. **Message & Claim Testing** — A/B message comparison, claim credibility, emotional resonance
+3. **Concept Testing** — Monadic/sequential monadic design, purchase intent, uniqueness, relevance
+
+### Functional Skills (Correct Output)
+These must generate valid, fieldable surveys with no methodology errors, but don't need demo-level polish.
+
+4. **Customer Segmentation / Needs-Based**
+5. **Competitive Positioning & Perceptual Mapping**
+6. **Ad / Creative Pre-Testing**
+7. **Usage & Attitudes (U&A)**
+8. **Customer Satisfaction / Post-Launch Pulse**
+9. **Market Sizing & Opportunity Assessment**
+10. **Purchase Journey / Decision Process Mapping**
+
+### Requirements Per Skill
+
+Each skill file must include:
+
+- **Methodology rules**: Which question types are valid, required question sequences, scale types with anchors, proper randomization instructions
+- **Screener logic**: Default screener questions appropriate to the methodology (e.g., category usage for U&A, purchase recency for satisfaction)
+- **Quota guidance**: Recommended demographic quotas and minimum cell sizes
+- **Question bank**: Template questions with proper wording, response options, and skip logic triggers
+- **Anti-patterns**: Explicit list of common mistakes the LLM should avoid (e.g., "never put price before concept exposure in a concept test")
+- **LOI tags**: Each question or block tagged with estimated completion time for LOI calculation
+
+### Acceptance Criteria
+- [ ] Each hero skill generates a survey that passes all 39 validators without errors
+- [ ] Each hero skill's output reviewed against a real consultant-authored survey for the same methodology — no material methodology gaps
+- [ ] Each functional skill generates valid output for at least 3 different brief variations
+- [ ] Multi-skill selection works correctly (e.g., a brief requiring both pricing AND concept testing selects both skills)
+
+### Task Breakdown
+
+| # | Task | Est. Effort | Notes |
+|---|------|-------------|-------|
+| 1.1 | Audit all 10 existing skills against methodology requirements above | 1 day | Document gaps per skill |
+| 1.2 | Update Pricing Research skill | 2 days | Include Van Westendorp 4-question sequence, Gabor-Granger price ladder, price-feature conjoint variant |
+| 1.3 | Update Message & Claim Testing skill | 2 days | Monadic cell assignment, forced-exposure wording, diagnostic battery |
+| 1.4 | Update Concept Testing skill | 2 days | Stimulus presentation rules, purchase intent scale (Juster or top-2-box), open-ends for diagnostics |
+| 1.5 | Update remaining 7 functional skills | 3–4 days | Focus on methodology correctness, not polish |
+| 1.6 | Test all 10 skills with varied briefs in LangSmith | 2 days | Minimum 3 briefs per skill |
+| 1.7 | Fix multi-skill selection edge cases | 1 day | Verify extract_brief.py correctly identifies compound objectives |
+
+---
+
+## Phase 2: LOI Functionality
+
+### Objective
+Implement an interactive LOI slider in the Editor that lets users dynamically adjust survey depth *after* generation. The system generates the full "Deep" survey, then the slider controls which questions are visible at any given LOI setting. Users can also pin/unpin individual questions to create custom configurations between presets.
+
+### How It Works
+
+1. **Generation always produces the full survey** — every question tagged as `required`, `recommended`, or `optional` is generated
+2. **The LOI slider in the editor controls visibility** — sliding left hides lower-priority questions; sliding right reveals them
+3. **Three snap points** (Quick / Standard / Deep) but the slider is continuous between them
+4. **Each slider position shows**: estimated LOI, which questions are included/excluded, and a focus note explaining what that configuration prioritizes
+5. **Users can override** by pinning individual questions (forcing them to stay visible regardless of slider position) or excluding questions (forcing them hidden regardless of slider position)
+
+### LOI Slider — UI Layout (lives in the Editor header)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  EDITOR HEADER BAR                                               │
+│  [← Back]   Survey Title (editable)          [Test ▶] [Launch]  │
+│                                                                  │
+│  LOI CONTROL BAR (below header, full width, collapsible)         │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │  Survey Length                                    [▼]    │   │
+│  │                                                          │   │
+│  │  ⚡ Quick        📊 Standard          🔬 Deep            │   │
+│  │  3-5 min         8-12 min             15-20 min          │   │
+│  │  ├─────────────────●──────────────────────────────┤      │   │
+│  │                    ▲                                      │   │
+│  │              current: ~10 min                             │   │
+│  │                                                          │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  📊 Standard: Balanced depth for most studies.   │   │   │
+│  │  │  Includes screener, core metrics, and key        │   │   │
+│  │  │  diagnostics. Drops: extended open-ends,         │   │   │
+│  │  │  secondary attribute batteries, detailed         │   │   │
+│  │  │  competitive comparison.                         │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  │  12 of 18 questions shown  |  6 hidden                  │   │
+│  │  2 pinned by you  |  1 excluded by you                  │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+├──────────────────────┬──────────────────────────────────────────┤
+│  SECTION NAV         │  QUESTION EDITOR CANVAS                  │
+│  (shows question     │                                          │
+│  visibility state)   │  Questions now show visibility badges:   │
+│                      │                                          │
+│  ┌────────────────┐  │  ┌──────────────────────────────────┐   │
+│  │ 📋 Screener    │  │  │  QUESTION CARD                   │   │
+│  │   Q1. Age    ● │  │  │  ┌────────────────────────────┐  │   │
+│  │   Q2. Cat.   ● │  │  │  │ Q6  Rating Scale      [▼]  │  │   │
+│  ├────────────────┤  │  │  │                            │  │   │
+│  │ 📋 Core        │  │  │  │ "How unique is this        │  │   │
+│  │   Q3. Appeal ● │  │  │  │  concept?"                 │  │   │
+│  │   Q4. PI     ● │  │  │  │                            │  │   │
+│  │   Q5. Unique ● │  │  │  │  Priority: recommended     │  │   │
+│  │   Q6. Relev. ○ │  │  │  │                            │  │   │
+│  ├────────────────┤  │  │  │  ┌──────┐ ┌──────┐        │  │   │
+│  │ 📋 Pricing     │  │  │  │  │📌 Pin│ │🚫 Excl│        │  │   │
+│  │   Q7. WTP    ● │  │  │  │  └──────┘ └──────┘        │  │   │
+│  │   Q8. VSM1   ● │  │  │  │                            │  │   │
+│  │   Q9. VSM2   ● │  │  │  │         [↑] [↓] [🗑️ Del]  │  │   │
+│  │   Q10. VSM3  ● │  │  │  └────────────────────────────┘  │   │
+│  │   Q11. VSM4  ● │  │  │                                  │   │
+│  │   Q12. Comp. ○ │  │  │  HIDDEN QUESTION (collapsed)     │   │
+│  ├────────────────┤  │  │  ┌──────────────────────────────┐│   │
+│  │ 📋 Demographics│  │  │  │ Q12. Competitive pricing  ○  ││   │
+│  │   Q13. Gen.  ● │  │  │  │ Hidden at current LOI        ││   │
+│  │   Q14. Inc.  ○ │  │  │  │ [📌 Pin to include] [Expand] ││   │
+│  └────────────────┘  │  │  └──────────────────────────────┘│   │
+│                      │  │                                  │   │
+│  ● visible           │  │                                  │   │
+│  ○ hidden at LOI     │  └──────────────────────────────────┘   │
+│  📌 pinned by user   │                                          │
+│  🚫 excluded by user │                                          │
+└──────────────────────┴──────────────────────────────────────────┘
+```
+
+### Component Specifications
+
+#### LOI Control Bar
+- **Position**: Directly below the editor header bar, full width
+- **Height**: Auto (expands to fit content, ~140px when expanded)
+- **Background**: `#F9FAFB`, bottom border 1px `#E5E7EB`
+- **Collapsible**: Chevron on the right of the "Survey Length" label. Collapsed state shows just the slider and current LOI estimate in a single row (~48px height). Expanded state shows the full panel with focus note and stats.
+- **Default**: Expanded on first visit, remembers collapsed state
+
+#### LOI Slider
+- **Type**: Range input (continuous), width ~100% of control bar content area (with left/right padding)
+- **Snap points**: Three labeled tick marks at Quick (left), Standard (center), Deep (right). Slider snaps to these when within 10% proximity, but can rest between them.
+- **Thumb**: 20px circle, `#2563EB`, white border 2px, shadow
+- **Track**: 6px height, filled portion `#2563EB`, unfilled `#E5E7EB`, rounded
+- **Tick labels**: Above the track. Icon + tier name + time range. Active snap point is `#2563EB` bold, others are `#6B7280`.
+- **Current LOI display**: Below slider, centered on thumb position: "current: ~10 min" — 14px semibold `#2563EB`
+
+#### Focus Note Box
+- **Position**: Below slider
+- **Background**: `#F0F9FF`, border 1px `#BFDBFE`, border-radius 8px, padding 12px
+- **Content**: Changes dynamically as slider moves. Format:
+  - **Tier label + description** of what this configuration prioritizes (1 sentence)
+  - **"Drops:"** list of what's excluded compared to the next tier up
+- **Transition**: Content fades/crossfades when slider moves between tiers (200ms)
+
+#### Stats Row
+- **Position**: Below focus note
+- **Content**: "X of Y questions shown | Z hidden | N pinned by you | M excluded by you"
+- **Style**: 13px, `#6B7280`, pipe-separated
+
+#### Question Visibility States (in Editor Canvas)
+
+Each question card now has a visibility state:
+
+| State | Badge | Card Appearance | Actions |
+|-------|-------|----------------|---------|
+| Visible (included by LOI) | ● green dot | Normal — full card, fully editable | Pin, Exclude, Edit, Reorder, Delete |
+| Hidden (excluded by LOI) | ○ gray dot | Collapsed — single row, gray text, muted | Pin to include, Expand to preview |
+| Pinned (user override — always visible) | 📌 blue pin icon | Normal + blue left border accent | Unpin, Edit, Reorder, Delete |
+| Excluded (user override — always hidden) | 🚫 red circle | Collapsed + strikethrough title | Un-exclude |
+
+**Visible questions**: Rendered as normal question cards (same as Phase 3 spec). Show a small "Priority: required/recommended/optional" tag in muted text. Show Pin and Exclude icon buttons alongside the existing action buttons.
+
+**Hidden questions**: Rendered as a single collapsed row:
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ○  Q12. Competitive pricing comparison   [recommended]      │
+│     Hidden at current LOI                                    │
+│                                  [📌 Pin to include] [▼ Expand]│
+└──────────────────────────────────────────────────────────────┘
+```
+- Background: `#F9FAFB`, border 1px `#E5E7EB` dashed, text `#9CA3AF`
+- "Pin to include" adds the question back despite LOI setting
+- "Expand" shows the full question card for preview (read-only at this state unless user pins it)
+
+**Pinned questions**: Normal card + left border 3px `#2563EB` + small 📌 badge top-right. These stay visible even if the user slides LOI below their priority level.
+
+**Excluded questions**: Collapsed row + strikethrough title text + 🚫 badge. These stay hidden even if the user slides LOI above their priority level.
+
+#### Section Nav Updates
+- Each question in the sidebar shows its visibility icon (●/○/📌/🚫)
+- Hidden questions shown in lighter text `#D1D5DB`
+- Section question counts update: "Pricing (4/6)" meaning 4 of 6 questions visible
+
+### LOI Calculation Logic
+
+```
+For each slider position (0-100 scale):
+  0-20:   Quick tier — include only `required` questions
+  20-50:  Quick→Standard interpolation — add `recommended` questions 
+          sorted by methodology importance (most critical first)
+  50:     Standard snap point — all `required` + all `recommended`
+  50-80:  Standard→Deep interpolation — add `optional` questions
+          sorted by methodology importance
+  80-100: Deep tier — all questions included
+
+User overrides:
+  Pinned questions: ALWAYS included regardless of slider position
+  Excluded questions: NEVER included regardless of slider position
+
+LOI estimate = sum of estimated_seconds for all visible questions + pinned
+             - sum of estimated_seconds for excluded questions
+             (converted to minutes, rounded to nearest 0.5)
+```
+
+### Focus Note Content Per Tier
+
+| Tier | Focus Note | Drops (vs. next tier up) |
+|------|-----------|--------------------------|
+| Quick | "Fast validation on your core hypothesis. Includes screener and essential metrics only." | "Drops: diagnostic batteries, open-ends, secondary metrics, detailed demographics" |
+| Standard | "Balanced depth for most studies. Includes screener, core metrics, and key diagnostics." | "Drops: extended open-ends, secondary attribute batteries, detailed competitive comparison" |
+| Deep | "Maximum diagnostic depth for complex decisions. Every question included." | (nothing dropped) |
+| Between Quick→Standard | "Adding diagnostic depth. Core metrics plus [next question being added]." | Dynamic — shows which questions are next to be added/removed |
+| Between Standard→Deep | "Near-full depth. Adding [next question being added] for additional context." | Dynamic |
+
+### Data Model Updates
+
+Each question in `survey_output.json` gains:
+
+```json
+{
+  "id": "string",
+  "text": "string",
+  "type": "string",
+  "priority": "required | recommended | optional",
+  "priority_rank": "number (1-N, ordering within priority level for interpolation)",
+  "loi_visibility": "visible | hidden",
+  "user_override": "none | pinned | excluded",
+  "estimated_seconds": "number"
+}
+```
+
+New top-level field:
+
+```json
+{
+  "loi_config": {
+    "slider_position": "number (0-100)",
+    "snap_point": "quick | standard | deep | custom",
+    "estimated_loi_minutes": "number",
+    "total_questions": "number",
+    "visible_questions": "number",
+    "hidden_questions": "number",
+    "user_pinned_count": "number",
+    "user_excluded_count": "number"
+  }
+}
+```
+
+### Acceptance Criteria
+- [ ] Slider renders with three snap points and continuous movement between them
+- [ ] Moving the slider instantly shows/hides questions in the editor canvas
+- [ ] Focus note updates dynamically as slider moves
+- [ ] LOI estimate updates in real time
+- [ ] Stats row shows correct counts (visible/hidden/pinned/excluded)
+- [ ] Hidden questions render as collapsed rows with "Pin to include" action
+- [ ] Pinning a hidden question makes it visible with blue accent
+- [ ] Excluding a visible question collapses and strikes it through
+- [ ] Unpinning/un-excluding restores default LOI-based visibility
+- [ ] Section nav sidebar reflects visibility states with icons and counts
+- [ ] Slider position persists when navigating away and back
+- [ ] Each hero skill produces meaningfully different question sets across Quick/Standard/Deep (not just truncation — different questions appear/disappear, not just the last N)
+
+### Task Breakdown
+
+| # | Task | Est. Effort | Notes |
+|---|------|-------------|-------|
+| 2.1 | Add priority + priority_rank tags to all 10 skills | 2 days | Tag every question block; define ordering within tiers |
+| 2.2 | Implement LOI calculation engine | 1 day | Slider position → visible question set, with interpolation logic |
+| 2.3 | Build LOI slider component (snap points, continuous, labels) | 1 day | |
+| 2.4 | Build LOI control bar (collapsible panel with focus note + stats) | 0.5 days | |
+| 2.5 | Build dynamic focus note content (per tier + interpolation states) | 0.5 days | |
+| 2.6 | Implement question visibility states in editor canvas (visible/hidden/pinned/excluded) | 1.5 days | 4 visual states per question card |
+| 2.7 | Build Pin/Exclude toggle buttons on question cards | 0.5 days | |
+| 2.8 | Build collapsed hidden question row with "Pin to include" and "Expand" | 0.5 days | |
+| 2.9 | Update section nav sidebar with visibility icons and counts | 0.5 days | |
+| 2.10 | Wire LOI recalculation to all edit operations (add/remove/pin/exclude) | 0.5 days | |
+| 2.11 | Test across all 3 tiers × 3 hero skills | 1 day | Verify meaningful differentiation |
+
+---
+
+## Phase 3: Edit Function
+
+### Objective
+Allow users to modify AI-generated surveys before testing/launching. The editor must feel professional but does not need to be a full survey builder — it's for refinement, not creation from scratch.
+
+### Core Operations (Must Have)
+
+1. **Edit question text** — Click on any question to edit the wording inline
+2. **Edit response options** — Add, remove, reorder, rename response options
+3. **Reorder questions** — Move questions up/down within a section, or between sections
+4. **Add a question** — Insert a new question (select type from a picker, enter text and options)
+5. **Delete a question** — Remove with confirmation
+6. **Edit section titles** — Rename survey sections
+7. **Edit skip logic** — Simple "if answer X, skip to question Y" editor (not a full logic builder)
+8. **Edit survey metadata** — Title, description, intro/outro text
+
+### Not in MVP
+- Drag-and-drop reordering (use up/down buttons)
+- Undo/redo or version history
+- Collaborative editing
+- Bulk operations
+- Custom question type creation
+- Advanced piping/logic builder
+- Theme/style customization
+
+### UI Layout Specification
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  HEADER BAR                                                     │
+│  [← Back to Brief]   Survey Title (editable)   [LOI: 8 min ▼]  │
+│                                        [Test ▶] [Launch 🚀]     │
+├──────────────────────┬──────────────────────────────────────────┤
+│  SECTION NAV         │  QUESTION EDITOR CANVAS                  │
+│  (Left Sidebar)      │                                          │
+│  240px fixed width   │  (Scrollable main area)                  │
+│                      │                                          │
+│  ┌────────────────┐  │  ┌──────────────────────────────────┐    │
+│  │ 📋 Screener    │  │  │  SECTION HEADER                  │    │
+│  │   Q1. Age      │  │  │  "Screener" [✏️ Edit] [+ Add Q]  │    │
+│  │   Q2. Category │  │  │                                  │    │
+│  ├────────────────┤  │  ├──────────────────────────────────┤    │
+│  │ 📋 Core        │  │  │  QUESTION CARD                   │    │
+│  │   Q3. Concept  │  │  │  ┌────────────────────────────┐  │    │
+│  │   Q4. Appeal   │  │  │  │ Q1  Single Select     [▼]  │  │    │
+│  │   Q5. Intent   │  │  │  │                            │  │    │
+│  ├────────────────┤  │  │  │ "What is your age?"        │  │    │
+│  │ 📋 Pricing     │  │  │  │  [click text to edit]      │  │    │
+│  │   Q6. WTP      │  │  │  │                            │  │    │
+│  │   Q7. VSM_1    │  │  │  │ Options:                   │  │    │
+│  │   Q8. VSM_2    │  │  │  │  ○ 18-24                   │  │    │
+│  │   Q9. VSM_3    │  │  │  │  ○ 25-34                   │  │    │
+│  │   Q10. VSM_4   │  │  │  │  ○ 35-44                   │  │    │
+│  ├────────────────┤  │  │  │  ○ 45-54                   │  │    │
+│  │ 📋 Demographics│  │  │  │  ○ 55+                     │  │    │
+│  │   Q11. Gender  │  │  │  │  [+ Add option]            │  │    │
+│  │   Q12. Income  │  │  │  │                            │  │    │
+│  └────────────────┘  │  │  │ Skip Logic:                │  │    │
+│                      │  │  │  None  [+ Add logic]       │  │    │
+│  [+ Add Section]     │  │  │                            │  │    │
+│                      │  │  │         [↑] [↓] [🗑️ Del]  │  │    │
+│                      │  │  └────────────────────────────┘  │    │
+│                      │  │                                  │    │
+│                      │  │  QUESTION CARD (next)            │    │
+│                      │  │  ┌────────────────────────────┐  │    │
+│                      │  │  │ Q2  Single Select     [▼]  │  │    │
+│                      │  │  │ ...                        │  │    │
+│                      │  │  └────────────────────────────┘  │    │
+│                      │  │                                  │    │
+│                      │  └──────────────────────────────────┘    │
+└──────────────────────┴──────────────────────────────────────────┘
+```
+
+### Component Specifications
+
+#### Header Bar
+- **Position**: Fixed top, full width, height 56px
+- **Background**: White, bottom border 1px `#E5E7EB`
+- **Left**: Back arrow + "Back to Brief" text link
+- **Center**: Survey title — renders as text, click to edit inline (input field replaces text on click, blur or Enter to save)
+- **Right cluster**: Test button (secondary style), Launch button (primary style, filled)
+- **Below header**: LOI Control Bar (see Phase 2 for full spec) — collapsible panel with slider, focus note, and stats
+
+#### Section Nav (Left Sidebar)
+- **Position**: Fixed left, width 240px, full height below header
+- **Background**: `#F9FAFB`, right border 1px `#E5E7EB`
+- **Content**: List of sections, each section is a collapsible group
+  - Section header: Section name, click to scroll main canvas to that section
+  - Under each section: List of question labels (e.g., "Q1. Age") — truncated to fit, click to scroll to that question
+  - Active question highlighted with left border accent `#2563EB` (blue)
+- **Bottom**: "+ Add Section" button, secondary style
+
+#### Question Editor Canvas (Main Area)
+- **Position**: Scrollable, fills remaining space right of sidebar
+- **Padding**: 32px horizontal, 24px vertical
+- **Max content width**: 720px, centered within the canvas
+
+#### Section Header (within Canvas)
+- **Layout**: Row with section name (editable on click) and "+ Add Question" button right-aligned
+- **Typography**: 18px semibold, color `#111827`
+- **Divider**: 1px `#E5E7EB` below, margin-bottom 16px
+
+#### Question Card
+- **Container**: White background, 1px border `#E5E7EB`, border-radius 8px, padding 20px, margin-bottom 16px
+- **Hover state**: Border color `#D1D5DB`, subtle shadow `0 1px 3px rgba(0,0,0,0.1)`
+- **Selected state** (when editing): Border color `#2563EB`, shadow `0 0 0 2px rgba(37,99,235,0.2)`
+- **Layout top row**: Question number (e.g., "Q1") in gray pill, question type dropdown (select element, options: Single Select, Multi Select, Open End - Short, Open End - Long, Grid/Matrix, Ranking, Slider, MaxDiff), positioned right
+- **Question text**: Below top row. Renders as paragraph text. Click to convert to textarea for editing. 16px regular, color `#111827`
+- **Response options area**: Below question text. Each option is a row:
+  - Radio/checkbox icon (decorative, matches question type) + editable text input
+  - Hover reveals [×] delete button on the right
+  - Drag handle on the left (or up/down arrows for MVP)
+  - Last row: "+ Add option" text button
+- **Skip logic section**: Collapsed by default, shows "Skip Logic: None" or summary. Expand to show:
+  - "If respondent selects [dropdown of options] → Skip to [dropdown of questions]"
+  - "+ Add rule" for additional conditions
+- **Action buttons**: Bottom right of card. Up arrow, Down arrow, Delete (trash icon). All icon buttons, 32px, gray, hover accent.
+
+#### Question Type Dropdown Options
+```
+Single Select       — Radio buttons, one answer
+Multi Select        — Checkboxes, multiple answers
+Open End - Short    — Single line text input
+Open End - Long     — Multi-line textarea
+Grid / Matrix       — Rows × Columns rating grid
+Ranking             — Drag to rank items
+Slider              — Numeric scale slider
+MaxDiff             — Best/worst selection
+Rating Scale        — Likert-type scale (1-5, 1-7, 1-10)
+```
+
+#### Add Question Flow
+1. User clicks "+ Add Question" in section header
+2. A blank question card appears at the bottom of that section, in edit mode
+3. Question type defaults to "Single Select"
+4. User types question text, adds options
+5. Card saves on blur/click outside (no explicit save button)
+
+#### Skip Logic Editor (Expanded)
+```
+┌─────────────────────────────────────────────────┐
+│ Skip Logic                                [▼]   │
+│                                                  │
+│ Rule 1:                                          │
+│ If answer is  [Dropdown: option list]            │
+│ Then skip to  [Dropdown: question list]          │
+│                                      [🗑️ Del]   │
+│                                                  │
+│ [+ Add rule]                                     │
+└─────────────────────────────────────────────────┘
+```
+
+### Data Model (Edit State)
+
+The edit function operates on the `survey_output.json` structure. Each edit mutates the JSON in memory and triggers:
+1. Re-render of the affected question card
+2. LOI recalculation
+3. Auto-save to local state (no explicit save button)
+
+```json
+{
+  "survey": {
+    "title": "string",
+    "description": "string",
+    "estimated_loi_minutes": "number",
+    "sections": [
+      {
+        "id": "string (uuid)",
+        "title": "string",
+        "questions": [
+          {
+            "id": "string (uuid)",
+            "number": "number (auto-calculated)",
+            "type": "enum (single_select|multi_select|open_short|open_long|grid|ranking|slider|maxdiff|rating_scale)",
+            "text": "string",
+            "required": "boolean",
+            "options": [
+              {
+                "id": "string (uuid)",
+                "text": "string",
+                "order": "number"
+              }
+            ],
+            "grid_config": {
+              "rows": ["string"],
+              "columns": ["string"]
+            },
+            "scale_config": {
+              "min": "number",
+              "max": "number",
+              "min_label": "string",
+              "max_label": "string"
+            },
+            "skip_logic": [
+              {
+                "condition_option_id": "string",
+                "skip_to_question_id": "string"
+              }
+            ],
+            "priority": "enum (required|recommended|optional)",
+            "estimated_seconds": "number"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Acceptance Criteria
+- [ ] User can edit question text inline (click to edit, blur to save)
+- [ ] User can add/remove/reorder response options
+- [ ] User can reorder questions within and between sections (up/down buttons)
+- [ ] User can add new questions with type selection
+- [ ] User can delete questions with confirmation dialog
+- [ ] User can add/edit/remove simple skip logic rules
+- [ ] Section nav highlights current question and scrolls on click
+- [ ] LOI badge updates in real time when questions are added/removed
+- [ ] All edits persist in the survey JSON data model
+
+### Task Breakdown
+
+| # | Task | Est. Effort | Notes |
+|---|------|-------------|-------|
+| 3.1 | Build page layout shell (header, sidebar, canvas) | 0.5 days | |
+| 3.2 | Build Question Card component | 1.5 days | Core editing component |
+| 3.3 | Implement inline text editing for questions and options | 1 day | |
+| 3.4 | Build question type dropdown and type switching | 0.5 days | Must re-render option area for type |
+| 3.5 | Implement reorder (up/down buttons) | 0.5 days | Within section and cross-section |
+| 3.6 | Build Add Question flow | 0.5 days | |
+| 3.7 | Build Delete Question with confirmation | 0.25 days | |
+| 3.8 | Build Section Nav with scroll sync | 0.5 days | Scroll to question on click, highlight active |
+| 3.9 | Build Skip Logic editor (collapsed/expanded) | 1 day | |
+| 3.10 | Wire LOI recalculation to edits | 0.5 days | |
+| 3.11 | Build Add/Edit Section functionality | 0.25 days | |
+| 3.12 | Integration test: load survey_output.json → edit → re-export | 1 day | |
+
+---
+
+## Phase 4: Test / Preview Function
+
+### Objective
+Allow users to preview the survey exactly as a respondent would experience it, AND annotate questions with comments during the preview. After completing the preview, comments are summarised and the user can select which ones to send to the AI for targeted survey edits.
+
+### Core Operations (Must Have)
+
+1. **Respondent-view rendering** — Survey displays one question at a time (or one section at a time, configurable)
+2. **Skip logic execution** — Selecting an answer that triggers skip logic actually skips
+3. **Progress bar** — Shows respondent progress through the survey
+4. **Navigation** — Next/Back buttons, question validation (required questions enforced)
+5. **Comment on any question** — Floating comment button per question, opens a note panel
+6. **End screen** — Shows completion message + comment summary
+7. **Comment review & AI edit flow** — User selects which comments to action, AI makes targeted updates
+
+### Not in MVP
+- Simulated response data generation
+- Device preview (mobile/tablet/desktop frames)
+- Accessibility audit
+- Timing measurement during preview
+- Shareable preview link
+- Multiple preview modes (page-by-page vs. all-at-once)
+
+### UI Layout Specification
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  PREVIEW HEADER BAR                                             │
+│  ⚠️ PREVIEW MODE          Survey Title         [Exit Preview ✕] │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────┐       │
+│  │ Progress: ████████░░░░░░░░░░░░░  Q3 of 12           │       │
+│  └──────────────────────────────────────────────────────┘       │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────┐       │
+│  │                                                      │       │
+│  │  QUESTION DISPLAY                                    │       │
+│  │                                                      │       │
+│  │  3. How appealing is this concept to you?            │       │
+│  │                                                      │       │
+│  │     ○ Extremely appealing                            │       │
+│  │     ○ Very appealing                                 │       │
+│  │     ○ Somewhat appealing                             │       │
+│  │     ○ Not very appealing                             │       │
+│  │     ○ Not at all appealing                           │       │
+│  │                                                      │       │
+│  │                                                      │       │
+│  │                        [← Back]    [Next →]          │       │
+│  │                                                      │       │
+│  │                               [💬 Add Comment]       │       │
+│  │                                                      │       │
+│  └──────────────────────────────────────────────────────┘       │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────┐       │
+│  │ COMMENT PANEL (slides in from right when activated)   │       │
+│  │                                                      │       │
+│  │  💬 Comment on Q3                                    │       │
+│  │  ┌──────────────────────────────────────────────┐   │       │
+│  │  │  "Should we add a 'not sure' option? Also    │   │       │
+│  │  │  wondering if this scale is too granular —    │   │       │
+│  │  │  maybe collapse to 4 points."                 │   │       │
+│  │  └──────────────────────────────────────────────┘   │       │
+│  │                                    [Save Comment]    │       │
+│  │                                                      │       │
+│  │  Previous comments on this question:                 │       │
+│  │  (none yet)                                          │       │
+│  │                                                      │       │
+│  └──────────────────────────────────────────────────────┘       │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────┐       │
+│  │ 💡 Editor Notes (only visible in preview mode):      │       │
+│  │ • This question has skip logic:                      │       │
+│  │   "Not at all appealing" → Skip to Q8 (Pricing)     │       │
+│  │ • Priority: Required | Est. time: 12 sec             │       │
+│  └──────────────────────────────────────────────────────┘       │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Comment Flow — End of Preview
+
+After the user completes the survey preview, they reach a completion screen that includes a comment summary and the AI edit workflow:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  PREVIEW HEADER BAR                                             │
+│  ⚠️ PREVIEW MODE          Survey Title         [Exit Preview ✕] │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────┐       │
+│  │                                                      │       │
+│  │        ✅ Preview Complete                           │       │
+│  │                                                      │       │
+│  │   12 questions reviewed | 4 comments added           │       │
+│  │   Estimated respondent time: 9 min                   │       │
+│  │   Skip logic triggered: Q3 → Skipped Q4-Q7          │       │
+│  │                                                      │       │
+│  └──────────────────────────────────────────────────────┘       │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────┐       │
+│  │  YOUR COMMENTS — AI SUMMARY                          │       │
+│  │                                                      │       │
+│  │  We've grouped your feedback into themes:            │       │
+│  │                                                      │       │
+│  │  ┌────────────────────────────────────────────────┐  │       │
+│  │  │ 🔄 Scale adjustments (2 comments)              │  │       │
+│  │  │                                                │  │       │
+│  │  │ Q3: Consider adding 'not sure' option and      │  │       │
+│  │  │ reducing from 5-point to 4-point scale.        │  │       │
+│  │  │                                                │  │       │
+│  │  │ Q7: Price points feel too spread out —         │  │       │
+│  │  │ tighten the range to $25-$45.                  │  │       │
+│  │  │                                                │  │       │
+│  │  │                          ☑ Include in AI edit   │  │       │
+│  │  └────────────────────────────────────────────────┘  │       │
+│  │                                                      │       │
+│  │  ┌────────────────────────────────────────────────┐  │       │
+│  │  │ ✏️ Wording improvements (1 comment)             │  │       │
+│  │  │                                                │  │       │
+│  │  │ Q5: "Uniqueness" feels jargon-y — rephrase    │  │       │
+│  │  │ to plain language.                             │  │       │
+│  │  │                                                │  │       │
+│  │  │                          ☑ Include in AI edit   │  │       │
+│  │  └────────────────────────────────────────────────┘  │       │
+│  │                                                      │       │
+│  │  ┌────────────────────────────────────────────────┐  │       │
+│  │  │ ➕ Missing content (1 comment)                  │  │       │
+│  │  │                                                │  │       │
+│  │  │ Q11: Should ask about subscription             │  │       │
+│  │  │ willingness — missing from the survey.         │  │       │
+│  │  │                                                │  │       │
+│  │  │                          ☐ Include in AI edit   │  │       │
+│  │  └────────────────────────────────────────────────┘  │       │
+│  │                                                      │       │
+│  │  ──────────────────────────────────────────────────  │       │
+│  │                                                      │       │
+│  │  Additional instructions for the AI (optional):      │       │
+│  │  ┌────────────────────────────────────────────────┐  │       │
+│  │  │  e.g., "Keep the total LOI under 10 minutes"   │  │       │
+│  │  └────────────────────────────────────────────────┘  │       │
+│  │                                                      │       │
+│  │     [Apply Selected Edits with AI →]                 │       │
+│  │     [Return to Editor Without Changes]               │       │
+│  │                                                      │       │
+│  └──────────────────────────────────────────────────────┘       │
+│                                                                  │
+│  ═══════════════════════════════════════════════════════════════  │
+│                                                                  │
+│  AI EDIT PROGRESS (replaces the comment section above)           │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────┐       │
+│  │                                                      │       │
+│  │  🔄 Applying your feedback...                        │       │
+│  │                                                      │       │
+│  │  ████████████░░░░░░░░░                               │       │
+│  │                                                      │       │
+│  │  ✅ Adjusting scales on Q3 and Q7                    │       │
+│  │  🔄 Rephrasing Q5 wording...                         │       │
+│  │  ○  Validating updated survey                        │       │
+│  │                                                      │       │
+│  └──────────────────────────────────────────────────────┘       │
+│                                                                  │
+│  ═══════════════════════════════════════════════════════════════  │
+│                                                                  │
+│  AI EDIT COMPLETE — DIFF VIEW                                    │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────┐       │
+│  │                                                      │       │
+│  │  ✅ 3 changes applied                                │       │
+│  │                                                      │       │
+│  │  Q3. Appeal scale                                    │       │
+│  │  ┌────────────────────────────────────────────────┐  │       │
+│  │  │ BEFORE: 5-point scale (Extremely → Not at all) │  │       │
+│  │  │ AFTER:  4-point scale (Very → Not at all)      │  │       │
+│  │  │         + "Not sure" option added               │  │       │
+│  │  │                                                │  │       │
+│  │  │              [✓ Accept]  [✗ Reject]             │  │       │
+│  │  └────────────────────────────────────────────────┘  │       │
+│  │                                                      │       │
+│  │  Q5. Uniqueness                                      │       │
+│  │  ┌────────────────────────────────────────────────┐  │       │
+│  │  │ BEFORE: "How unique is this concept?"          │  │       │
+│  │  │ AFTER:  "How different is this product from    │  │       │
+│  │  │          what's currently available?"           │  │       │
+│  │  │                                                │  │       │
+│  │  │              [✓ Accept]  [✗ Reject]             │  │       │
+│  │  └────────────────────────────────────────────────┘  │       │
+│  │                                                      │       │
+│  │  Q7. Price points                                    │       │
+│  │  ┌────────────────────────────────────────────────┐  │       │
+│  │  │ BEFORE: Range $19-$59                          │  │       │
+│  │  │ AFTER:  Range $25-$45                          │  │       │
+│  │  │                                                │  │       │
+│  │  │              [✓ Accept]  [✗ Reject]             │  │       │
+│  │  └────────────────────────────────────────────────┘  │       │
+│  │                                                      │       │
+│  │     [Accept All & Return to Editor]                  │       │
+│  │     [Reject All & Return to Editor]                  │       │
+│  │                                                      │       │
+│  └──────────────────────────────────────────────────────┘       │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Component Specifications
+
+#### Preview Header
+- **Background**: `#FEF3C7` (amber-100) — visually distinct from the editor to make it clear this is preview mode
+- **Height**: 48px
+- **Left**: Warning icon + "PREVIEW MODE" in semibold amber text
+- **Center**: Survey title (read-only)
+- **Right**: "Exit Preview" button with × icon
+
+#### Progress Bar
+- **Position**: Below header, full width of content area
+- **Height**: 8px bar + 16px label below
+- **Bar**: Background `#E5E7EB`, fill `#2563EB`, rounded
+- **Label**: "Q3 of 12" right-aligned, 14px, gray
+
+#### Question Display Area
+- **Container**: White, max-width 640px, centered, padding 40px, border-radius 12px, subtle shadow
+- **Question number**: 16px semibold gray
+- **Question text**: 20px regular, color `#111827`, margin-bottom 24px
+- **Response options**: Rendered faithfully per question type:
+  - **Single select**: Radio buttons with labels, 16px, 12px gap between options
+  - **Multi select**: Checkboxes
+  - **Open end**: Text input or textarea
+  - **Grid**: HTML table with radio buttons at intersections
+  - **Ranking**: Numbered list with up/down buttons (simplified)
+  - **Slider**: Range input with min/max labels
+  - **Rating scale**: Horizontal radio group with scale labels
+- **Navigation**: Back/Next buttons, right-aligned. Next is primary style, Back is secondary. Next is disabled until required question answered.
+
+#### Comment Button & Panel
+- **Comment button**: "💬 Add Comment" — positioned bottom-right of question display area. Secondary style, small. If question already has a comment, shows "💬 1 comment" with count badge.
+- **Comment panel**: Slides in from the right side of the question display area (or appears below it on smaller screens).
+  - **Background**: White, border 1px `#E5E7EB`, border-radius 8px, padding 16px, shadow
+  - **Header**: "💬 Comment on Q3" — 14px semibold
+  - **Textarea**: 3 rows, auto-expanding, placeholder "Add your notes about this question..."
+  - **Save button**: "Save Comment" — small primary button. On save, textarea clears and comment appears in "Previous comments" list below.
+  - **Previous comments**: Chronological list. Each comment shows text + timestamp + [Edit] [Delete] icons.
+  - **Close**: Click outside or × button to collapse panel
+
+#### Comment Data Model (Per Question)
+
+```json
+{
+  "question_id": "string",
+  "comments": [
+    {
+      "id": "string (uuid)",
+      "text": "string",
+      "created_at": "datetime",
+      "theme": "string (assigned during summarisation)"
+    }
+  ]
+}
+```
+
+#### Editor Notes Panel (Preview-only)
+- **Position**: Below question display (and below comment panel if open)
+- **Background**: `#F0F9FF` (blue-50), border 1px `#BFDBFE`, border-radius 8px, padding 16px
+- **Content**: Shows skip logic rules active on this question, priority tag, estimated time.
+- **Visibility**: Only shown in preview mode — respondents would never see this
+
+#### Comment Summary & AI Edit Flow (Completion Screen)
+
+**Comment Summary Cards**:
+- AI groups raw comments into 2-5 themes using an LLM summarisation call
+- Each theme card:
+  - **Header**: Theme icon + label (e.g., "🔄 Scale adjustments") + comment count — 14px semibold
+  - **Body**: Summarised version of the grouped comments, with original question references — 14px regular `#374151`
+  - **Checkbox**: "Include in AI edit" — bottom right. Checked by default for all themes.
+  - **Container**: White, border 1px `#E5E7EB`, border-radius 8px, padding 16px, margin-bottom 12px
+  - **Expand**: Click to expand and see original raw comments (collapsed by default, showing only the summary)
+
+**Additional Instructions**:
+- Single-line text input below the theme cards
+- Placeholder: "e.g., 'Keep the total LOI under 10 minutes'"
+- Optional — user can leave blank
+
+**Action Buttons**:
+- "Apply Selected Edits with AI →" — primary, full width. Sends selected themes + additional instructions to the AI for targeted survey updates.
+- "Return to Editor Without Changes" — secondary text link below
+
+**AI Edit Progress**:
+- Same pattern as generation progress (step list with status icons)
+- Steps reflect the specific edits being applied
+
+**Diff View**:
+- After AI completes edits, show a per-question diff of what changed
+- Each diff card:
+  - Question number + short label
+  - BEFORE state (gray text, strikethrough or faded)
+  - AFTER state (normal text, green left border accent)
+  - [✓ Accept] / [✗ Reject] buttons per change
+- Bottom: "Accept All & Return to Editor" (primary) / "Reject All & Return to Editor" (secondary)
+- Partially accepting: User can accept some, reject others. On clicking "Return to Editor", only accepted changes are applied.
+
+#### Completion Screen (No Comments Path)
+If the user completes the preview without adding any comments, show a simpler completion screen:
+
+```
+┌──────────────────────────────────────────┐
+│                                          │
+│        ✅ Preview Complete               │
+│                                          │
+│   12 questions reviewed                  │
+│   Estimated respondent time: 9 min       │
+│                                          │
+│   Skip logic triggered:                  │
+│   • Q3 → Skipped Q4-Q7 (concept reject) │
+│                                          │
+│   No comments added.                     │
+│                                          │
+│        [Return to Editor]                │
+│                                          │
+└──────────────────────────────────────────┘
+```
+
+### Acceptance Criteria
+- [ ] All question types render correctly in respondent view
+- [ ] Skip logic executes correctly (selecting a trigger option advances to the correct question)
+- [ ] Progress bar updates accurately (accounts for skipped questions)
+- [ ] Required question validation prevents advancing without answer
+- [ ] Back button works and preserves previous answers
+- [ ] Comment button appears on every question, opens comment panel
+- [ ] Comments can be added, edited, and deleted per question
+- [ ] Comment count badge updates on the comment button
+- [ ] Completion screen shows AI-grouped comment summary with theme cards
+- [ ] User can check/uncheck themes for AI editing
+- [ ] User can add additional instructions for the AI
+- [ ] "Apply Selected Edits" triggers AI edit with progress display
+- [ ] Diff view shows before/after for each changed question
+- [ ] User can accept/reject individual changes
+- [ ] Accepted changes are applied to the survey when returning to editor
+- [ ] Rejected changes are discarded
+- [ ] No-comments path shows simple completion screen
+- [ ] Editor notes panel shows correct metadata per question
+- [ ] Exit preview returns to editor in the correct state
+
+### Task Breakdown
+
+| # | Task | Est. Effort | Notes |
+|---|------|-------------|-------|
+| 4.1 | Build preview page shell (header, progress, content area) | 0.5 days | |
+| 4.2 | Build question renderers for each type | 2 days | 9 question types × rendering |
+| 4.3 | Implement skip logic engine | 1 day | Walk the question list respecting conditions |
+| 4.4 | Build navigation (next/back) with validation | 0.5 days | |
+| 4.5 | Build comment button + comment panel (slide-in) | 1 day | Per-question comments with CRUD |
+| 4.6 | Build editor notes panel | 0.25 days | |
+| 4.7 | Build completion screen (with and without comments) | 0.5 days | |
+| 4.8 | Build comment summarisation LLM call (group into themes) | 1 day | Prompt engineering for theme grouping |
+| 4.9 | Build comment summary UI (theme cards with checkboxes) | 0.5 days | |
+| 4.10 | Build "Apply Edits" AI call + progress display | 1 day | Targeted edit prompt from selected themes |
+| 4.11 | Build diff view (before/after per question with accept/reject) | 1.5 days | Most complex UI in this phase |
+| 4.12 | Wire accepted changes back into survey JSON | 0.5 days | |
+| 4.13 | Test with hero skill outputs (pricing, message, concept) | 1 day | Validate all types render + comment → edit flow works |
+
+---
+
+## Phase 5: Reporting Function
+
+### Objective
+Show what the output of a fielded survey looks like. For the partnership demo, this will use pre-seeded realistic data. The reporting must look like something a CMO would put in front of their board.
+
+### Core Features (Must Have)
+
+1. **Summary dashboard** — Key metrics at a glance (sample size, field dates, LOI actual vs. estimated, completion rate)
+2. **Question-level results** — Chart + data table for every question
+3. **Cross-tabulation** — Filter/break results by one demographic variable (e.g., age, gender)
+4. **Statistical significance** — Flag significant differences in cross-tabs (at 95% confidence)
+5. **AI-generated insights** — 3-5 bullet summary of key findings, generated per question and overall
+6. **Export** — Download as PDF or PowerPoint
+
+### Not in MVP
+- Real-time data streaming (data is pre-seeded)
+- Custom filtering/pivot tables
+- Raw data CSV export
+- Advanced stats (regression, factor analysis, cluster analysis)
+- Dashboard customization / saved views
+- Multi-wave comparison
+
+### UI Layout Specification
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  REPORT HEADER                                                   │
+│  "Pricing Study: Product X"                                      │
+│  Fielded: Jan 15-17, 2026  |  n=403  |  LOI: 9.2 min           │
+│                                   [Export PDF] [Export PPTX]     │
+├─────────────────────┬───────────────────────────────────────────┤
+│  REPORT NAV         │  REPORT CANVAS                             │
+│  (Left Sidebar)     │                                            │
+│  240px fixed width  │  (Scrollable)                              │
+│                     │                                            │
+│  ┌───────────────┐  │  ┌─────────────────────────────────────┐  │
+│  │ 📊 Executive  │  │  │  EXECUTIVE SUMMARY CARD             │  │
+│  │    Summary    │  │  │                                     │  │
+│  ├───────────────┤  │  │  AI-Generated Insights:             │  │
+│  │ 📋 Screener   │  │  │                                     │  │
+│  │    Results    │  │  │  • Optimal price point is $X based  │  │
+│  ├───────────────┤  │  │    on Van Westendorp intersection   │  │
+│  │ 📋 Core       │  │  │  • Price sensitivity is highest     │  │
+│  │    Findings   │  │  │    among 25-34 age group            │  │
+│  ├───────────────┤  │  │  • 72% find concept appealing at    │  │
+│  │ 📋 Pricing    │  │  │    the $29 price point              │  │
+│  │    Analysis   │  │  │  • Key barrier: perceived quality   │  │
+│  ├───────────────┤  │  │    gap vs. incumbent brand          │  │
+│  │ 📋 Demographics│ │  │                                     │  │
+│  └───────────────┘  │  └─────────────────────────────────────┘  │
+│                     │                                            │
+│  CROSS-TAB CONTROL  │  ┌─────────────────────────────────────┐  │
+│  ┌───────────────┐  │  │  QUESTION RESULT CARD               │  │
+│  │ Break by:     │  │  │                                     │  │
+│  │ [▼ None     ] │  │  │  Q3. How appealing is this concept? │  │
+│  │              │  │  │  n=403                               │  │
+│  │ Options:     │  │  │                                     │  │
+│  │  · None      │  │  │  ┌─────────────────────────────┐    │  │
+│  │  · Age       │  │  │  │  CHART                      │    │  │
+│  │  · Gender    │  │  │  │                             │    │  │
+│  │  · Income    │  │  │  │  Extremely ████████░ 34%    │    │  │
+│  │  · Region    │  │  │  │  Very      ██████░░░ 28%    │    │  │
+│  │              │  │  │  │  Somewhat  ████░░░░░ 18%    │    │  │
+│  └───────────────┘  │  │  │  Not very  ██░░░░░░░ 12%   │    │  │
+│                     │  │  │  Not at all █░░░░░░░░  8%   │    │  │
+│                     │  │  │                             │    │  │
+│                     │  │  └─────────────────────────────┘    │  │
+│                     │  │                                     │  │
+│                     │  │  💡 AI Insight: "Concept appeal     │  │
+│                     │  │  is strong (62% top-2-box).         │  │
+│                     │  │  Significantly higher among         │  │
+│                     │  │  women 25-34 (p<.05)."             │  │
+│                     │  │                                     │  │
+│                     │  │  [📊 Chart] [📋 Table] toggle       │  │
+│                     │  │                                     │  │
+│                     │  │  DATA TABLE (when toggled):         │  │
+│                     │  │  ┌──────────┬──────┬───────┐       │  │
+│                     │  │  │ Option   │  n   │   %   │       │  │
+│                     │  │  ├──────────┼──────┼───────┤       │  │
+│                     │  │  │ Ext.app  │ 137  │  34%  │       │  │
+│                     │  │  │ Very     │ 113  │  28%  │       │  │
+│                     │  │  │ Somewhat │  73  │  18%  │       │  │
+│                     │  │  │ Not very │  48  │  12%  │       │  │
+│                     │  │  │ Not at   │  32  │   8%  │       │  │
+│                     │  │  └──────────┴──────┴───────┘       │  │
+│                     │  └─────────────────────────────────────┘  │
+│                     │                                            │
+│                     │  (More question cards below...)            │
+│                     │                                            │
+│                     │  ┌─────────────────────────────────────┐  │
+│                     │  │  SPECIALTY CHART (for pricing)      │  │
+│                     │  │                                     │  │
+│                     │  │  Van Westendorp Price Sensitivity   │  │
+│                     │  │                                     │  │
+│                     │  │  [Line chart showing 4 curves:]     │  │
+│                     │  │  — Too Cheap                        │  │
+│                     │  │  — Cheap/Good Value                 │  │
+│                     │  │  — Expensive/High                   │  │
+│                     │  │  — Too Expensive                    │  │
+│                     │  │                                     │  │
+│                     │  │  Optimal Price Point: $29           │  │
+│                     │  │  Acceptable Range: $22 - $38        │  │
+│                     │  │                                     │  │
+│                     │  └─────────────────────────────────────┘  │
+└─────────────────────┴───────────────────────────────────────────┘
+```
+
+### Component Specifications
+
+#### Report Header
+- **Background**: White, bottom border 1px `#E5E7EB`
+- **Title**: 24px semibold
+- **Metadata row**: Field dates, sample size, LOI — 14px gray, separated by pipes
+- **Export buttons**: Right-aligned, secondary style with icons
+
+#### Report Nav (Left Sidebar)
+- Same structure as Edit sidebar: 240px fixed, `#F9FAFB` background
+- Sections correspond to survey sections + Executive Summary at top
+- Click scrolls canvas to that section
+- Cross-tab control at bottom of sidebar (always visible):
+  - Dropdown selector: "Break by: [None / Age / Gender / Income / Region]"
+  - Selecting a break variable re-renders all charts as grouped/stacked bars
+
+#### Executive Summary Card
+- **Background**: White with left border 4px `#2563EB`
+- **Padding**: 24px
+- **Content**: AI-generated bullets (3-5 key findings). Each bullet is a concise, actionable insight with data points. Methodology-specific insights (e.g., Van Westendorp optimal price) should lead.
+
+#### Question Result Card
+- **Container**: White, border 1px `#E5E7EB`, border-radius 8px, padding 24px, margin-bottom 20px
+- **Header**: Question text (16px semibold) + sample size (14px gray)
+- **Chart area**: Default chart type based on question type:
+  - Single select → Horizontal bar chart
+  - Multi select → Horizontal bar chart (sorted by frequency)
+  - Rating scale → Horizontal bar with mean score displayed
+  - Grid/Matrix → Stacked horizontal bar per row
+  - Open end → Word cloud or top themes list (AI-extracted)
+  - Ranking → Horizontal bar of average rank
+  - Slider → Histogram or distribution curve
+  - Van Westendorp → 4-line intersection chart (specialty)
+  - Gabor-Granger → Demand curve (specialty)
+- **Chart/Table toggle**: Bottom of card, two-button toggle. Default: Chart view
+- **AI Insight**: Below chart, in a light blue callout box (`#F0F9FF`). 1-2 sentences per question.
+- **Cross-tab view** (when break variable selected): Chart becomes grouped bars with legend. Significant differences marked with asterisk (*) and footnote.
+
+#### Data Table (toggled)
+- Clean HTML table, alternating row shading
+- Columns: Option label | n (count) | % (percentage)
+- When cross-tab active: additional columns per break group, with sig testing indicators (letter notation: a, b, c for groups that differ significantly)
+
+#### Specialty Charts (Methodology-Specific)
+Pre-built chart types for specific methodologies:
+- **Van Westendorp**: 4-line chart with intersection points labeled (PMC, PME, OPP, IPP)
+- **Gabor-Granger**: Demand curve (price on X, % willing to pay on Y) with revenue optimization overlay
+- **Conjoint**: Utility scores bar chart by attribute level, importance scores bar chart
+- **MaxDiff**: Best-Worst scores scaled to 0-100
+
+### Data Model (Reporting)
+
+For MVP, this data is pre-seeded (not live from panel). Create realistic seed data for the 3 hero use cases.
+
+```json
+{
+  "report": {
+    "survey_id": "string",
+    "title": "string",
+    "field_dates": { "start": "date", "end": "date" },
+    "sample_size": "number",
+    "completion_rate": "number (0-1)",
+    "actual_loi_minutes": "number",
+    "executive_summary": ["string (AI insight bullet)"],
+    "demographics": {
+      "age": { "18-24": 0.15, "25-34": 0.28, ... },
+      "gender": { "Male": 0.48, "Female": 0.50, "Other": 0.02 },
+      "income": { ... },
+      "region": { ... }
+    },
+    "questions": [
+      {
+        "question_id": "string",
+        "question_text": "string",
+        "question_type": "string",
+        "sample_size": "number",
+        "results": {
+          "options": [
+            {
+              "label": "string",
+              "count": "number",
+              "percentage": "number",
+              "breaks": {
+                "age": { "18-24": 0.38, "25-34": 0.42, ... },
+                "gender": { "Male": 0.31, "Female": 0.37, ... }
+              }
+            }
+          ],
+          "mean": "number (if applicable)",
+          "median": "number (if applicable)"
+        },
+        "significance_tests": [
+          {
+            "break_variable": "gender",
+            "groups_compared": ["Male", "Female"],
+            "p_value": 0.03,
+            "significant": true
+          }
+        ],
+        "ai_insight": "string"
+      }
+    ],
+    "specialty_analyses": [
+      {
+        "type": "van_westendorp",
+        "data": {
+          "too_cheap_curve": [[price, cumulative_pct], ...],
+          "good_value_curve": [[price, cumulative_pct], ...],
+          "expensive_curve": [[price, cumulative_pct], ...],
+          "too_expensive_curve": [[price, cumulative_pct], ...],
+          "optimal_price_point": "number",
+          "indifference_price_point": "number",
+          "acceptable_range": { "low": "number", "high": "number" }
+        }
+      }
+    ]
+  }
+}
+```
+
+### Seed Data Requirements
+
+Create 3 seed datasets (one per hero skill):
+
+1. **Pricing Study seed**: n=403, 12 questions, Van Westendorp + Gabor-Granger results, concept appeal, demographic breaks. Target product: a fictional DTC skincare product.
+2. **Message Testing seed**: n=302, 8 questions, 3-cell monadic design comparing taglines, diagnostic battery, open-end themes. Target: a fictional fintech app.
+3. **Concept Testing seed**: n=500, 15 questions, sequential monadic (2 concepts), purchase intent, uniqueness, relevance, open-end likes/dislikes. Target: a fictional snack brand.
+
+### Acceptance Criteria
+- [ ] Executive summary renders with AI-generated insights
+- [ ] All standard chart types render correctly for each question type
+- [ ] Cross-tabulation dropdown works — charts re-render as grouped bars with break variable
+- [ ] Statistical significance indicators display correctly on cross-tabs
+- [ ] Chart/Table toggle works per question
+- [ ] At least one specialty chart (Van Westendorp) renders with intersection points
+- [ ] Export to PDF produces a clean, presentable document
+- [ ] Seed data for all 3 hero use cases is realistic and internally consistent
+
+### Task Breakdown
+
+| # | Task | Est. Effort | Notes |
+|---|------|-------------|-------|
+| 5.1 | Design and build report page shell (header, nav, canvas) | 0.5 days | Same layout pattern as editor |
+| 5.2 | Build Executive Summary card | 0.5 days | |
+| 5.3 | Build standard chart components (bar, stacked bar, histogram) | 2 days | Use a charting library (Recharts, Chart.js, or similar) |
+| 5.4 | Build Question Result Card with chart/table toggle | 1 day | |
+| 5.5 | Build cross-tabulation dropdown + grouped bar rendering | 1.5 days | |
+| 5.6 | Build significance testing display (asterisks, letter notation) | 0.5 days | |
+| 5.7 | Build Van Westendorp specialty chart | 1 day | 4-line intersection chart |
+| 5.8 | Build Gabor-Granger specialty chart | 0.5 days | Demand curve |
+| 5.9 | Build AI insight callout per question | 0.5 days | |
+| 5.10 | Create seed data for Pricing Study | 1 day | Must be statistically realistic |
+| 5.11 | Create seed data for Message Testing | 0.5 days | |
+| 5.12 | Create seed data for Concept Testing | 0.5 days | |
+| 5.13 | Build PDF export | 1 day | |
+| 5.14 | Build PPTX export | 1.5 days | Use pptx library |
+| 5.15 | End-to-end test with all 3 seed datasets | 1 day | |
+
+---
+
+## Phase 6: Launch Function
+
+### Objective
+Demonstrate the full launch workflow. For MVP, the panel integration can be stubbed — the configuration UI is what matters for the demo.
+
+### Core Features (Must Have)
+
+1. **Audience configuration** — Define target demographics (age, gender, income, region)
+2. **Quota setup** — Set quota targets that align with the survey's screener
+3. **Sample size selection** — Choose total completes with guidance on margin of error
+4. **Cost estimate** — Show estimated cost based on sample size × CPI (cost per interview)
+5. **Field time estimate** — Show estimated time to complete fielding
+6. **Launch confirmation** — Review screen with all settings, confirm button
+7. **Status page** — Post-launch status (stubbed: shows "Fielding in progress" with a progress indicator)
+
+### Not in MVP
+- Actual panel provider integration (Cint, Lucid, etc.)
+- Real-time field monitoring
+- Quota management during fielding
+- Multi-market / multi-language
+- Panel provider selection
+- Soft launch / pilot mode
+
+### UI Layout Specification
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  LAUNCH HEADER                                                   │
+│  [← Back to Editor]   "Launch: Pricing Study"     Step 2 of 3   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  STEP INDICATOR                                                  │
+│  ● Audience ──── ○ Sample & Budget ──── ○ Review & Launch       │
+│                                                                  │
+│  ═══════════════════════════════════════════════════════════════  │
+│                                                                  │
+│  STEP 1: AUDIENCE                                                │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │  Target Market                                           │   │
+│  │  Country: [▼ United States      ]                        │   │
+│  │                                                          │   │
+│  │  Demographics                                            │   │
+│  │  ┌────────────────────┬────────────────────┐            │   │
+│  │  │ Age Range          │ Gender             │            │   │
+│  │  │ ☑ 18-24           │ ☑ Male             │            │   │
+│  │  │ ☑ 25-34           │ ☑ Female           │            │   │
+│  │  │ ☑ 35-44           │ ☐ Non-binary       │            │   │
+│  │  │ ☑ 45-54           │                    │            │   │
+│  │  │ ☐ 55-64           │ Income             │            │   │
+│  │  │ ☐ 65+             │ ☑ All incomes      │            │   │
+│  │  └────────────────────┴────────────────────┘            │   │
+│  │                                                          │   │
+│  │  Screening Criteria (auto-populated from survey)         │   │
+│  │  ┌──────────────────────────────────────────┐           │   │
+│  │  │ ✓ Must be primary grocery shopper         │           │   │
+│  │  │ ✓ Must have purchased skincare in past 3mo│           │   │
+│  │  │   (from screener Q1 and Q2)               │           │   │
+│  │  └──────────────────────────────────────────┘           │   │
+│  │                                                          │   │
+│  │                                         [Next →]         │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ═══════════════════════════════════════════════════════════════  │
+│                                                                  │
+│  STEP 2: SAMPLE & BUDGET                                         │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │  Sample Size                                             │   │
+│  │  ┌──────────┬──────────────────────────────────────┐    │   │
+│  │  │  n=      │ ▼ 400                                │    │   │
+│  │  └──────────┴──────────────────────────────────────┘    │   │
+│  │                                                          │   │
+│  │  Presets: [200] [400] [600] [1000] [Custom]              │   │
+│  │                                                          │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  📊 At n=400:                                    │   │   │
+│  │  │  • Margin of error: ±4.9% at 95% confidence     │   │   │
+│  │  │  • Sub-group analysis: reliable for groups >75   │   │   │
+│  │  │  • Recommended for: standard concept/pricing     │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  │  Quotas                                                  │   │
+│  │  ┌──────────┬─────────┬─────────────────────┐          │   │
+│  │  │ Variable │ Target  │ Distribution         │          │   │
+│  │  ├──────────┼─────────┼─────────────────────┤          │   │
+│  │  │ Gender   │ Natural │ ~50/50              │          │   │
+│  │  │ Age      │ Natural │ Census-proportional │          │   │
+│  │  │ Region   │ Natural │ Census-proportional │          │   │
+│  │  └──────────┴─────────┴─────────────────────┘          │   │
+│  │                                                          │   │
+│  │  Cost Estimate                                           │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  400 completes × $3.50 CPI = $1,400             │   │   │
+│  │  │  Platform fee:                   $200            │   │   │
+│  │  │  ─────────────────────────────────               │   │   │
+│  │  │  Estimated total:               $1,600           │   │   │
+│  │  │                                                  │   │   │
+│  │  │  Estimated field time: 24-48 hours               │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  │                              [← Back]    [Next →]        │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ═══════════════════════════════════════════════════════════════  │
+│                                                                  │
+│  STEP 3: REVIEW & LAUNCH                                         │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │  Review Your Study                                       │   │
+│  │                                                          │   │
+│  │  Survey:     Pricing Study: Product X (12 questions)     │   │
+│  │  LOI:        ~9 minutes                                  │   │
+│  │  Audience:   US, 18-54, M+F, all incomes                │   │
+│  │  Screener:   Primary shopper + skincare purchase         │   │
+│  │  Sample:     n=400                                       │   │
+│  │  Quotas:     Gender (natural), Age (natural)             │   │
+│  │  Cost:       $1,600 estimated                            │   │
+│  │  Timeline:   24-48 hours                                 │   │
+│  │                                                          │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  ⚠️  Before you launch:                          │   │   │
+│  │  │  • Have you previewed the survey? [✓]            │   │   │
+│  │  │  • Are quotas set correctly? [✓]                 │   │   │
+│  │  │  • Is the budget approved? [  ]                  │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  │                    [← Back]    [🚀 Launch Study]          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Post-Launch Status Page (Stubbed)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │   🟢 Study is Live                                       │   │
+│  │                                                          │   │
+│  │   Pricing Study: Product X                               │   │
+│  │   Launched: Feb 9, 2026 at 2:34 PM                       │   │
+│  │                                                          │   │
+│  │   Progress: ████████████░░░░░░░░░ 247 / 400 completes   │   │
+│  │                                                          │   │
+│  │   Estimated completion: Feb 10, 2026                     │   │
+│  │                                                          │   │
+│  │   ┌────────────────────────────────────────┐            │   │
+│  │   │ Metric              │ Value            │            │   │
+│  │   ├─────────────────────┼──────────────────┤            │   │
+│  │   │ Completes           │ 247 / 400        │            │   │
+│  │   │ Incidence rate      │ 68%              │            │   │
+│  │   │ Median LOI          │ 8.7 min          │            │   │
+│  │   │ Drop-off rate       │ 12%              │            │   │
+│  │   └────────────────────────────────────────┘            │   │
+│  │                                                          │   │
+│  │        [View Interim Results]    [Pause Study]           │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Note for implementation**: The status page is fully stubbed for MVP. The progress bar and metrics can animate/increment on a timer to simulate live fielding during a demo. "View Interim Results" navigates to the Reporting page with partial seed data.
+
+### Component Specifications
+
+#### Step Indicator
+- **Layout**: Horizontal stepper, three circles connected by lines
+- **Active step**: Filled circle `#2563EB`, bold label
+- **Completed step**: Filled circle `#10B981` (green) with checkmark
+- **Future step**: Outlined circle `#D1D5DB`, gray label
+
+#### Audience Configuration
+- **Country selector**: Single dropdown, default US
+- **Demographics**: Checkbox groups in a 2-column grid. Each group has a "Select All" toggle.
+- **Screening criteria**: Auto-populated card showing conditions derived from the survey's screener questions. Read-only display with link to edit in survey editor.
+
+#### Sample & Budget
+- **Sample size**: Input field with preset buttons (200, 400, 600, 1000, Custom). Clicking a preset fills the input.
+- **Stats guidance box**: Dynamically updates based on sample size. Shows margin of error, sub-group reliability note.
+- **Quotas table**: Simple table with Variable, Target (Natural/Custom), Distribution columns. Natural = census-proportional.
+- **Cost estimate box**: Calculated from `sample_size × CPI + platform_fee`. CPI can be hardcoded for MVP ($3-5 range). Show line items.
+
+#### Review & Launch
+- **Summary**: Clean key-value list of all configured parameters
+- **Pre-launch checklist**: Three checkbox items. All should be checked before launch button enables (or just advisory for MVP).
+- **Launch button**: Large, primary style, with rocket icon. Click triggers confirmation modal: "Are you sure you want to launch this study? Estimated cost: $1,600" with Cancel / Confirm buttons.
+
+### Acceptance Criteria
+- [ ] 3-step wizard flows correctly (next/back navigation, step indicator updates)
+- [ ] Audience configuration captures country, demographics, shows auto-populated screener criteria
+- [ ] Sample size selection updates margin of error and cost estimate dynamically
+- [ ] Quota table displays with sensible defaults
+- [ ] Review screen accurately reflects all settings from steps 1-2
+- [ ] Launch confirmation modal appears and "launches" (transitions to status page)
+- [ ] Status page renders with simulated progress (animated or timer-based for demo)
+
+### Task Breakdown
+
+| # | Task | Est. Effort | Notes |
+|---|------|-------------|-------|
+| 6.1 | Build step wizard shell (indicator, navigation, step transitions) | 0.5 days | Reusable 3-step component |
+| 6.2 | Build Step 1: Audience configuration | 1 day | Country, demographics, screener display |
+| 6.3 | Build Step 2: Sample & budget | 1 day | Sample presets, MoE calc, cost estimate |
+| 6.4 | Build Step 3: Review & launch | 0.5 days | Summary display, checklist, confirm modal |
+| 6.5 | Build post-launch status page (stubbed) | 0.5 days | Simulated progress animation |
+| 6.6 | Wire screener auto-population from survey data | 0.5 days | Parse screener section of survey JSON |
+| 6.7 | End-to-end test: editor → launch → status | 0.5 days | |
+
+---
+
+## Summary: Effort Estimates
+
+| Phase | Description | Estimated Days |
+|-------|-------------|----------------|
+| 1 | Survey Skills (10 use cases) | 12-14 |
+| 2 | LOI Slider Functionality | 9-10 |
+| 3 | Edit Function | 7-8 |
+| 4 | Test / Preview + Comments + AI Edit Loop | 10-12 |
+| 5 | Reporting Function | 12-14 |
+| 6 | Launch Function | 4-5 |
+| — | **Total** | **54-63 days** |
+
+Note: Setup page and navigation are specced in the companion document (setup-and-navigation.md) and add ~9 days, bringing the full build to **63-72 working days**.
+
+### Risk Notes
+
+- **Reporting is the heaviest UI phase** — specialty charts (Van Westendorp, Gabor-Granger) and cross-tab rendering are the most complex UI components. Consider using a charting library with good line-chart support (Recharts, Plotly, Nivo).
+- **LOI slider interpolation logic** is the trickiest algorithmic piece — the mapping from slider position to visible question set needs to feel smooth and intentional, not random. Invest time in getting the `priority_rank` ordering right per skill so the interpolation reveals questions in a logical sequence.
+- **Comment → AI edit loop** has two LLM calls in sequence (summarisation, then targeted edit) — latency could feel slow if not handled well. Consider streaming the progress steps. The diff view is the most complex UI in Phase 4.
+- **Seed data quality matters** — unrealistic data will undermine demo credibility. Invest time in making seed data statistically coherent (percentages sum to 100, cross-tab distributions are plausible, significance tests align with visible differences).
+- **Export (PDF/PPTX) is deceptively time-consuming** — consider deprioritizing PPTX export to post-MVP if time pressure increases. PDF is sufficient for the demo.
+- **Multi-skill selection** is the riskiest part of Phase 1 — a brief that requires both pricing AND concept testing must produce a coherent integrated survey, not two surveys stapled together.
+
+### Demo Script Suggestion
+
+For the Previously Unavailable demo, walk through:
+1. **Paste a brief**: "We're launching a new DTC skincare serum..." — paste the whole paragraph
+2. **Watch extraction**: AI pulls out objective, audience, competitors, category in 5 seconds
+3. **Review & refine**: Quick glance at extracted fields, adjust one thing, hit Generate
+4. **Show the AI generating** a pricing + concept study in seconds
+5. **Play with the LOI slider**: Drag from Deep to Quick — watch questions appear/disappear. "This is a 20-minute survey... now it's 5 minutes, and it still covers pricing fundamentals." Pin one optional question back in.
+6. **Make a couple of edits** in the editor — change a response option, tweak wording
+7. **Preview the survey** — walk through 4-5 questions, drop a comment on Q3 ("scale feels too granular")
+8. **Comment summary + AI edit**: At the end, select the comment theme, hit "Apply Edits" — watch the AI fix Q3's scale
+9. **Accept the diff** — one click, back in the editor with the fix applied
+10. **Go to Launch** — configure audience, see cost estimate
+11. **Jump to Reporting** (pre-seeded) — show the Van Westendorp chart, cross-tabs by age, AI insights
+12. **Export to PDF**
+
+Total demo time: ~12 minutes. Punchline: "What just took 12 minutes — including reviewing and refining the AI's work — would take a research agency 3-4 weeks and $25-40K."
+
+
+# Setup Page & Navigation Architecture
+## Companion to MVP Build Plan
+
+---
+
+## Global Navigation Architecture
+
+### Page Map
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                                                         │
+│  SETUP ──→ EDITOR ──→ TEST ──→ LAUNCH ──→ STATUS       │
+│   (1)       (2)       (3)      (4)        (5)          │
+│                                  │                      │
+│                                  └──→ REPORTING (6)     │
+│                                                         │
+│  DASHBOARD (0) ──→ any page via project list            │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Route Structure
+
+| Route | Page | Entry Points |
+|-------|------|-------------|
+| `/` | Dashboard | Direct / app launch |
+| `/project/new` | Setup (new project) | Dashboard → "New Study" button |
+| `/project/:id/setup` | Setup (edit brief) | Dashboard → project card → "Edit Brief" |
+| `/project/:id/editor` | Editor | Setup → "Generate Survey" completes / Dashboard → project card |
+| `/project/:id/preview` | Test / Preview | Editor → "Test" button |
+| `/project/:id/launch` | Launch Wizard | Editor → "Launch" button |
+| `/project/:id/status` | Field Status | Launch → confirm / Dashboard → active project card |
+| `/project/:id/report` | Reporting | Status → "View Results" / Dashboard → completed project card |
+
+### Navigation Rules
+
+- **Forward flow**: Setup → Editor → Test → Launch → Status → Reporting. Each page has a primary CTA that advances to the next step.
+- **Backward flow**: Every page has a "← Back to [previous]" link in the header. Users can always go back.
+- **Jump via Dashboard**: The Dashboard is the hub. Any project can be opened at its current stage from the Dashboard.
+- **Jump via header breadcrumb**: The global header shows a breadcrumb trail that allows jumping to any completed stage (but not skipping ahead to uncompleted stages).
+- **State gating**: Users cannot access Launch until a survey exists. Users cannot access Reporting until data exists (or seed data is loaded for demo).
+
+---
+
+## Global Header (Persistent Across All Pages)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  🔬 SurveyEngine    Home  |  My Studies               [Avatar] │
+│                                                                  │
+│  Breadcrumb (contextual):                                        │
+│  My Studies  ›  Pricing Study: Product X  ›  Editor              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Specifications
+
+- **Position**: Fixed top, full width, height 56px
+- **Background**: White, bottom border 1px `#E5E7EB`
+- **Left**: App logo/wordmark (placeholder — "SurveyEngine" or your actual brand). Links to Dashboard.
+- **Center-left**: Top-level nav links:
+  - "Home" → Dashboard (`/`)
+  - "My Studies" → Dashboard (`/`) — same destination, but when inside a project this becomes the breadcrumb root
+- **Right**: User avatar / initials circle (placeholder for auth — not functional in MVP, but reserves the space)
+- **Breadcrumb row** (second line, only shown when inside a project):
+  - Format: `My Studies › [Project Name] › [Current Page]`
+  - Each segment is a link except the current page (which is bold, non-linked)
+  - Project name links to the most recent stage of that project
+  - Breadcrumb height: 32px, 13px text, color `#6B7280`, active segment `#111827`
+
+---
+
+## Page 0: Dashboard
+
+### Purpose
+Central hub for all projects. Shows existing studies and their status. Entry point to create new studies.
+
+### UI Layout
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  GLOBAL HEADER                                                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  My Studies                          [+ New Study]       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  FILTER BAR                                                      │
+│  [All] [Draft] [Live] [Completed]          🔍 Search...         │
+│                                                                  │
+│  PROJECT CARDS (grid: 2 columns on desktop, 1 on mobile)        │
+│                                                                  │
+│  ┌────────────────────────┐  ┌────────────────────────┐        │
+│  │ 📊 Pricing Study:      │  │ 💬 Message Test:       │        │
+│  │    Product X            │  │    Fintech App v2      │        │
+│  │                         │  │                        │        │
+│  │ Status: ● Completed     │  │ Status: ● Live         │        │
+│  │ Method: Pricing (VW+GG) │  │ Method: Claim Testing  │        │
+│  │ n=403  |  LOI: 9 min    │  │ n=187/300  |  LOI: 7m  │        │
+│  │ Created: Jan 12, 2026   │  │ Created: Feb 3, 2026   │        │
+│  │                         │  │                        │        │
+│  │ [View Report]           │  │ [View Status]          │        │
+│  └────────────────────────┘  └────────────────────────┘        │
+│                                                                  │
+│  ┌────────────────────────┐  ┌────────────────────────┐        │
+│  │ 🧪 Concept Test:       │  │ 📋 U&A Study:          │        │
+│  │    Snack Brand Launch   │  │    Coffee Category      │        │
+│  │                         │  │                        │        │
+│  │ Status: ○ Draft         │  │ Status: ○ Draft        │        │
+│  │ Method: Concept Testing │  │ Method: Usage & Att.   │        │
+│  │ 15 questions  | 12 min  │  │ Not yet generated      │        │
+│  │ Created: Feb 7, 2026    │  │ Created: Feb 9, 2026   │        │
+│  │                         │  │                        │        │
+│  │ [Edit Survey]           │  │ [Edit Brief]           │        │
+│  └────────────────────────┘  └────────────────────────┘        │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                                                         │    │
+│  │   🚀 No studies yet? Start your first one.              │    │
+│  │      [+ Create New Study]                               │    │
+│  │                                                         │    │
+│  │   (empty state — only shown when no projects exist)     │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Component Specifications
+
+#### Page Header Row
+- **Layout**: Flex row, space-between
+- **Left**: "My Studies" — 28px semibold, `#111827`
+- **Right**: "+ New Study" button — primary style, medium size. Navigates to `/project/new`
+
+#### Filter Bar
+- **Layout**: Flex row, left-aligned tabs + right-aligned search
+- **Tabs**: Pill-style toggle buttons. Options: All, Draft, Live, Completed
+  - Active tab: `#2563EB` background, white text
+  - Inactive: `#F3F4F6` background, `#6B7280` text
+  - Counts shown in each tab: e.g., "Draft (2)"
+- **Search**: Input field with magnifying glass icon, width 240px, placeholder "Search studies..."
+  - Searches project names and methodology types
+
+#### Project Card
+- **Container**: White, border 1px `#E5E7EB`, border-radius 12px, padding 20px
+- **Hover**: Border `#D1D5DB`, shadow `0 2px 8px rgba(0,0,0,0.08)`, cursor pointer
+- **Click target**: Entire card is clickable — navigates to the project's current stage
+- **Layout**:
+  - **Top row**: Methodology icon (emoji placeholder) + project title (16px semibold)
+  - **Status badge**: Inline pill below title
+    - Draft: `○` gray dot, `#F3F4F6` bg, `#6B7280` text
+    - Live: `●` green dot (animated pulse), `#ECFDF5` bg, `#059669` text
+    - Completed: `●` blue dot, `#EFF6FF` bg, `#2563EB` text
+  - **Metadata rows**: 14px, `#6B7280`
+    - Method: Methodology name
+    - Stats: sample size + LOI (or "Not yet generated" for briefs without surveys)
+    - Created date
+  - **Action button**: Bottom of card, left-aligned, secondary style. Label varies by status:
+    - Draft (no survey): "Edit Brief" → `/project/:id/setup`
+    - Draft (has survey): "Edit Survey" → `/project/:id/editor`
+    - Live: "View Status" → `/project/:id/status`
+    - Completed: "View Report" → `/project/:id/report`
+
+#### Empty State
+- **Shown when**: No projects exist
+- **Container**: Dashed border `#D1D5DB`, border-radius 12px, padding 40px, centered text
+- **Content**: Rocket emoji, encouraging copy, primary CTA button
+
+#### Grid Layout
+- **Desktop (>1024px)**: 2-column grid, 24px gap
+- **Tablet (768-1024px)**: 2-column grid, 16px gap
+- **Mobile (<768px)**: 1-column stack, 16px gap
+
+---
+
+## Page 1: Setup (New Study / Edit Brief)
+
+### Purpose
+Capture the research brief from the user. This is where they describe what they want to learn, and the platform determines which skills/methodologies to apply. The setup page should feel like filling in a brief for a research consultant — structured enough to be useful, flexible enough to not feel like a form.
+
+### User Flow
+
+The setup page uses a two-phase approach: **Paste → Extract → Refine → Generate**.
+
+1. User arrives from Dashboard → "+ New Study"
+2. **Phase 1 — Input**: User pastes or types their entire brief into a single large text field (or uploads a brief document)
+3. User clicks "Extract Brief"
+4. System runs an LLM extraction pass that parses the raw brief into structured fields
+5. **Phase 2 — Refine**: Page transitions to show structured fields pre-populated with extracted data. User reviews, corrects, and fills any gaps.
+6. User selects LOI tier
+7. User clicks "Generate Survey"
+8. System runs extract_brief.py → generate_survey.py
+9. On completion, user is navigated to the Editor with the generated survey loaded
+
+This means the page has **two visual states**: the initial paste state and the structured review state. The transition between them is the key UX moment.
+
+### UI Layout — STATE 1: Paste Brief
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  GLOBAL HEADER                                                   │
+│  My Studies  ›  New Study                                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  MAX WIDTH: 720px, CENTERED                                      │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │  Start Your Study                                        │   │
+│  │  Paste your research brief below — we'll extract the     │   │
+│  │  key details and build your survey.                      │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │  Your Research Brief                                     │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │                                                  │   │   │
+│  │  │  (Large textarea — 12 rows, auto-expands)        │   │   │
+│  │  │                                                  │   │   │
+│  │  │  Placeholder:                                    │   │   │
+│  │  │  "Paste your research brief here. Include as     │   │   │
+│  │  │  much or as little detail as you have.           │   │   │
+│  │  │                                                  │   │   │
+│  │  │  For example:                                    │   │   │
+│  │  │                                                  │   │   │
+│  │  │  We're launching a new DTC skincare serum        │   │   │
+│  │  │  targeting women 25-45 who buy premium skincare. │   │   │
+│  │  │  We need to find the right price point (thinking │   │   │
+│  │  │  $29-$49 range), test which of 3 product claims  │   │   │
+│  │  │  resonates best, and validate overall concept    │   │   │
+│  │  │  appeal before committing to production.         │   │   │
+│  │  │                                                  │   │   │
+│  │  │  Key competitors: The Ordinary, CeraVe, Drunk   │   │   │
+│  │  │  Elephant. US market only. Need results within   │   │   │
+│  │  │  a week."                                        │   │   │
+│  │  │                                                  │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  │  ── OR ──                                                │   │
+│  │                                                          │   │
+│  │  ┌─────────────────────┐                                │   │
+│  │  │                     │                                │   │
+│  │  │   📄 Upload a brief │  PDF, Word, or text file       │   │
+│  │  │   or drag & drop    │  Max 10MB                      │   │
+│  │  │                     │                                │   │
+│  │  └─────────────────────┘                                │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │                    [Extract Brief →]                      │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ── or skip straight to structured fields ──                     │
+│                                                                  │
+│  [I'd rather fill in the fields manually ↓]                      │
+│                                                                  │
+│  ═══════════════════════════════════════════════════════════════  │
+│                                                                  │
+│  EXTRACTION STATE (replaces Extract button while running)        │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │  🔄 Reading your brief...                                │   │
+│  │                                                          │   │
+│  │  ████████████░░░░░░░░░                                   │   │
+│  │                                                          │   │
+│  │  Identifying objectives, audience, methodology...        │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### UI Layout — STATE 2: Review & Refine Extracted Fields
+
+After extraction completes, the page transitions (smooth scroll or animated swap) to show the structured fields pre-populated. A banner at the top shows the original brief for reference. All fields are editable.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  GLOBAL HEADER                                                   │
+│  My Studies  ›  New Study                                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  MAX WIDTH: 720px, CENTERED                                      │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │  Review Your Brief                                       │   │
+│  │  We've extracted the details below. Review and adjust    │   │
+│  │  anything that needs correcting, then generate.          │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  📋 ORIGINAL BRIEF (collapsible, starts collapsed)       │   │
+│  │                                                   [▼]    │   │
+│  │  "We're launching a new DTC skincare serum targeting     │   │
+│  │  women 25-45 who buy premium skincare. We need to find   │   │
+│  │  the right price point..."                               │   │
+│  │  [Re-extract] [Edit original]                            │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  SECTION: RESEARCH OBJECTIVE                             │   │
+│  │                                                          │   │
+│  │  Study Name *                                  [✨ AI]   │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  Pricing & Concept Study: DTC Skincare Serum     │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  │  Research Objective *                          [✨ AI]   │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  Determine optimal price point ($29-$49 range),  │   │   │
+│  │  │  test 3 product claims for resonance, and        │   │   │
+│  │  │  validate overall concept appeal before           │   │   │
+│  │  │  committing to production.                       │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │  Helper: "Be specific about decisions this research     │   │
+│  │  needs to inform."                                      │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  SECTION: CONTEXT                                        │   │
+│  │                                                          │   │
+│  │  Category / Industry *                         [✨ AI]   │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  Skincare / Beauty & Personal Care               │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  │  Target Audience *                             [✨ AI]   │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  Women 25-45 who purchase premium skincare       │   │   │
+│  │  │  products at least quarterly                     │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  │  Market / Country *                            [✨ AI]   │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  ▼ United States                                 │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  SECTION: STIMULUS MATERIAL               (optional)     │   │
+│  │                                                          │   │
+│  │  Concepts / Messages / Creative to test    [✨ AI]       │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  3 product claims identified from brief:         │   │   │
+│  │  │  (extracted as text — user can edit)              │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  │  ┌─────────────────────┐                                │   │
+│  │  │                     │                                │   │
+│  │  │   📄 Upload files   │  Images, PDF, text             │   │
+│  │  │   or drag & drop    │  Max 5 files, 10MB each        │   │
+│  │  │                     │                                │   │
+│  │  └─────────────────────┘                                │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  SECTION: COMPETITORS                     (optional)     │   │
+│  │                                                          │   │
+│  │  Key competitors                           [✨ AI]       │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  Competitor 1:  [The Ordinary               ]    │   │   │
+│  │  │  Competitor 2:  [CeraVe                     ]    │   │   │
+│  │  │  Competitor 3:  [Drunk Elephant             ]    │   │   │
+│  │  │  [+ Add competitor]                              │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  SECTION: SPECIFIC QUESTIONS              (optional)     │   │
+│  │                                                          │   │
+│  │  Any specific questions to include?        [✨ AI]       │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  (empty if not mentioned in brief, or populated  │   │   │
+│  │  │  if the user's brief mentioned specific Qs)      │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  SECTION: SURVEY LENGTH (informational only)             │   │
+│  │                                                          │   │
+│  │  We'll generate a comprehensive survey. After            │   │
+│  │  generation, you can adjust the depth using the          │   │
+│  │  LOI slider in the editor.                               │   │
+│  │                                                          │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  ⚡ 3-5 min  ←───────────────────→  🔬 15-20 min │   │   │
+│  │  │           You'll control this later               │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  METHODOLOGY PREVIEW (read-only)                         │   │
+│  │                                                          │   │
+│  │  Based on your brief, we'll use:                         │   │
+│  │                                                          │   │
+│  │  ┌────────┐  ┌──────────────┐  ┌─────────────┐         │   │
+│  │  │ 💰     │  │ 💬           │  │ 🧪          │         │   │
+│  │  │Pricing │  │ Claim        │  │ Concept     │         │   │
+│  │  │Research│  │ Testing      │  │ Testing     │         │   │
+│  │  └────────┘  └──────────────┘  └─────────────┘         │   │
+│  │                                                          │   │
+│  │  ℹ️  These methodologies were selected based on your     │   │
+│  │  research objective. You can adjust the survey after     │   │
+│  │  generation.                                             │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │                    [Generate Survey →]                    │   │
+│  │                                                          │   │
+│  │  ⏱️ Generation typically takes 15-30 seconds             │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│  ═══════════════════════════════════════════════════════════════  │
+│                                                                  │
+│  GENERATION STATE (replaces the Generate button while running)  │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │  🔄 Generating your survey...                            │   │
+│  │                                                          │   │
+│  │  ████████████░░░░░░░░░  Step 2 of 4                     │   │
+│  │                                                          │   │
+│  │  ✅ Extracting research objectives                       │   │
+│  │  ✅ Selecting methodologies: Pricing, Claim Testing      │   │
+│  │  🔄 Generating survey questions...                       │   │
+│  │  ○  Running validation checks                            │   │
+│  │                                                          │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Component Specifications
+
+#### Page Title Area
+- **Max width**: 720px, centered horizontally with 32px side padding
+- **Title**: State 1: "Start Your Study" / State 2: "Review Your Brief" — 28px semibold, `#111827`
+- **Subtitle**: 16px regular, `#6B7280` — changes per state
+
+#### STATE 1 Components
+
+**Brief Textarea**:
+- Height: 12 rows minimum, auto-expands as user types (max 24 rows before scroll)
+- Border: 1px `#D1D5DB`, border-radius 8px
+- Focus: Border `#2563EB`, ring `0 0 0 2px rgba(37,99,235,0.2)`
+- Placeholder: Multi-line example brief (see wireframe above) — 14px `#9CA3AF`
+- Value text: 16px `#111827`
+- Padding: 16px
+
+**Brief File Upload**:
+- Positioned below textarea, separated by an "── OR ──" divider (centered text, horizontal lines either side, 13px `#9CA3AF`)
+- Container: Dashed border 2px `#D1D5DB`, border-radius 8px, padding 20px, text-centered
+- Accepts: PDF, .docx, .txt files. On upload, file content is extracted and populates the textarea above (replacing the upload area with a file chip showing filename + "Content extracted ✓")
+- Drag hover state: Border `#2563EB`, background `#EFF6FF`
+
+**Extract Brief Button**:
+- Style: Large primary button, full width of content area (720px max), height 52px
+- Label: "Extract Brief →" — 16px semibold white
+- Background: `#2563EB`, hover `#1D4ED8`
+- Disabled state: When textarea is empty — `#D1D5DB` background, `#9CA3AF` text
+
+**Manual Entry Link**:
+- Below the Extract button: "I'd rather fill in the fields manually ↓" — 14px text link, `#2563EB`, underline on hover
+- Clicking this skips extraction and shows State 2 with all fields empty
+
+**Extraction Progress**:
+- Replaces the Extract button area while running
+- Container: White, border 1px `#E5E7EB`, border-radius 12px, padding 24px, centered
+- Spinner + "Reading your brief..." text
+- Progress bar: 8px height, indeterminate animation (or step-based if extraction has distinct phases)
+- Typically completes in 3-8 seconds
+
+#### STATE 2 Components (Review & Refine)
+
+**Transition**: State 1 smoothly transitions to State 2. The textarea collapses into the "Original Brief" collapsible banner, and the structured fields animate in below. Alternatively, a simple page-level swap is acceptable for MVP.
+
+**Original Brief Banner**:
+- **Position**: Top of State 2, below page title
+- **Background**: `#F9FAFB`, border 1px `#E5E7EB`, border-radius 8px, padding 16px
+- **Default state**: Collapsed — shows "📋 Original Brief" label + first ~80 chars of brief text, truncated with ellipsis. Chevron on right.
+- **Expanded state**: Full brief text visible (max-height 200px, scroll if longer)
+- **Actions**: 
+  - "Re-extract" — re-runs extraction with the original text (useful if user edits the original)
+  - "Edit original" — expands the brief text into an editable textarea within the banner. Saving triggers re-extraction.
+
+**AI-Populated Field Indicator** `[✨ AI]`:
+- Small badge shown on the right side of each field label that was populated by extraction
+- Style: 12px, `#8B5CF6` (purple) text, no background — just a subtle marker
+- Purpose: Signals "this was filled by AI — double-check it"
+- Disappears once the user manually edits the field (indicating they've reviewed it)
+- Not shown on fields the user fills manually or that extraction left empty
+
+**Form Sections** (in State 2):
+- Same layout as previously specified but all start **expanded** (not collapsed) since they may contain extracted data
+- Sections with no extracted data show the field with placeholder text — user can fill or leave empty
+- **Required fields**: Study Name, Research Objective, Category, Target Audience, Market — marked with red asterisk (*)
+- **Optional fields**: Stimulus, Competitors, Specific Questions — clearly labeled "(optional)"
+
+**Field-level validation** (State 2):
+- Required fields that extraction left empty: Show amber highlight border `#F59E0B` with helper text "We couldn't extract this from your brief — please fill it in"
+- Required fields that extraction populated: Normal style, but still editable
+- All fields validate on blur and before Generate button enables
+
+#### Input Fields (shared across both states)
+
+**Text input (single line)**:
+- Height: 44px
+- Border: 1px `#D1D5DB`, border-radius 8px
+- Focus: Border `#2563EB`, ring `0 0 0 2px rgba(37,99,235,0.2)`
+- Placeholder: 14px `#9CA3AF`
+- Value text: 16px `#111827`
+- Label: 14px medium `#374151`, 6px margin-bottom
+
+**Textarea**:
+- Same styling as text input but multi-row
+- Row count specified per field (3, 4, or 6 rows)
+- Auto-expand up to max 12 rows as user types (optional enhancement)
+
+**Dropdown (Country selector)**:
+- Same styling as text input
+- Chevron icon right-aligned
+- Options: Searchable dropdown. Pre-populated with major markets (US, UK, AU, NZ, CA, DE, FR, etc.)
+
+**Helper text**:
+- Below input, 13px regular, `#6B7280`
+- Used sparingly — only where the field needs clarification
+
+#### File Upload Area (Stimulus — in State 2)
+- **Container**: Dashed border 2px `#D1D5DB`, border-radius 8px, padding 24px, text-centered
+- **Drag hover state**: Border `#2563EB`, background `#EFF6FF`
+- **Upload icon**: Cloud-upload outline icon, 32px, `#9CA3AF`
+- **Primary text**: "Upload files or drag & drop" — 14px medium
+- **Secondary text**: "Images, PDF, text — Max 5 files, 10MB each" — 13px `#9CA3AF`
+- **After upload**: File chips appear below upload area. Each chip: filename + file size + [×] remove button
+
+#### Competitor Inputs
+- **Layout**: Vertical stack of single-line text inputs
+- **Pre-populated**: If extraction found competitors, fields are pre-filled
+- **Default (no extraction)**: 3 empty inputs shown
+- **"+ Add competitor"**: Text button below last input. Adds another input (max 6)
+- **Empty inputs**: Are ignored on submission
+
+#### LOI Note (Setup Page)
+- The setup page no longer has a tier selector — it shows a simple informational note that LOI will be adjustable in the editor after generation
+- **Style**: Light info box, `#F0F9FF` background, `#2563EB` left border 3px, padding 16px
+- **Content**: Brief explanation + a miniature visual hint of the slider (static, non-interactive)
+
+#### Methodology Preview (State 2, optional enhancement)
+- **Visibility**: Appears in State 2 if extraction identified methodologies. Otherwise hidden.
+- **Layout**: Row of small skill badges (pill-shaped, with icon and name). Read-only.
+- **Style**: Each badge: `#EFF6FF` background, `#2563EB` text, border-radius 16px, padding 6px 12px
+- **Info note**: "ℹ️ These methodologies were selected based on your research objective. You can adjust the survey after generation." — 13px `#6B7280`
+- **If not implemented for MVP**: Omit this section. The user will see the methodology reflected in the generated survey structure.
+
+#### Generate Button (State 2)
+- **Style**: Large primary button, full width of content area (720px max), height 52px
+- **Label**: "Generate Survey →" — 16px semibold white
+- **Background**: `#2563EB`, hover `#1D4ED8`
+- **Disabled state**: When required fields are empty — `#D1D5DB` background, `#9CA3AF` text, no hover effect
+- **Below button**: Helper text "⏱️ Generation typically takes 15-30 seconds" — 13px `#9CA3AF`
+
+#### Generation Progress State (State 2)
+- **Replaces**: The generate button area. The form above becomes read-only (slightly dimmed, inputs non-interactive).
+- **Container**: White, border 1px `#E5E7EB`, border-radius 12px, padding 32px, centered
+- **Progress bar**: 8px height, blue fill, step-based
+- **Step list**: Vertical list of generation steps:
+  1. "Extracting research objectives" (extract_brief.py)
+  2. "Selecting methodologies: [skill names]" (skill selection)
+  3. "Generating survey questions" (generate_survey.py)
+  4. "Running validation checks" (validators)
+- **On completion**: Brief green success state (1-2 sec), then auto-navigate to Editor page
+
+#### Error State
+- If generation fails (validation errors, etc.):
+```
+┌──────────────────────────────────────────────────────────┐
+│                                                          │
+│  ❌ Generation encountered issues                        │
+│                                                          │
+│  • Brief is too vague — add more detail about what       │
+│    decisions this research needs to inform               │
+│  • Could not determine target methodology from the       │
+│    objective described                                   │
+│                                                          │
+│  [Try Again]   [Edit Brief]                              │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Data Model (Brief / Setup)
+
+**Raw brief input** (State 1 → sent to extraction):
+
+```json
+{
+  "raw_brief": {
+    "text": "string (full pasted brief text)",
+    "source_file": {
+      "filename": "string or null",
+      "type": "string (pdf/docx/txt) or null",
+      "url": "string or null"
+    }
+  }
+}
+```
+
+**Extraction output** (populates State 2 fields):
+
+```json
+{
+  "extraction": {
+    "confidence": "number (0-1, overall extraction confidence)",
+    "fields": {
+      "name": { "value": "string or null", "extracted": true },
+      "objective": { "value": "string or null", "extracted": true },
+      "category": { "value": "string or null", "extracted": true },
+      "target_audience": { "value": "string or null", "extracted": true },
+      "market": { "value": "string or null", "extracted": true },
+      "stimulus_description": { "value": "string or null", "extracted": true },
+      "competitors": { "value": ["string"], "extracted": true },
+      "specific_questions": { "value": "string or null", "extracted": false },
+      "suggested_methodologies": ["string (skill names)"]
+    }
+  }
+}
+```
+
+Each field has an `extracted` boolean — this drives the `[✨ AI]` badge display. When the user edits a field, `extracted` flips to `false` for that field.
+
+**Final brief** (State 2 → sent to generation pipeline):
+
+```json
+{
+  "project": {
+    "id": "string (uuid, auto-generated)",
+    "name": "string",
+    "status": "draft",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  },
+  "brief": {
+    "raw_text": "string (original pasted brief — preserved for reference)",
+    "objective": "string",
+    "category": "string",
+    "target_audience": "string",
+    "market": "string (country code)",
+    "stimulus": {
+      "text_description": "string or null",
+      "files": [
+        {
+          "filename": "string",
+          "type": "string (image/pdf/text)",
+          "url": "string (uploaded file path)"
+        }
+      ]
+    },
+    "competitors": ["string"],
+    "specific_questions": "string or null",
+    "loi_tier": "quick | standard | deep"
+  }
+}
+```
+
+### Acceptance Criteria
+- [ ] State 1: User can paste a brief into the large textarea
+- [ ] State 1: User can upload a PDF/Word/text brief file that populates the textarea
+- [ ] State 1: "Extract Brief" button triggers LLM extraction and shows progress
+- [ ] State 1: "Fill in manually" link skips extraction and shows State 2 with empty fields
+- [ ] State 2: All fields populated by extraction display `[✨ AI]` badge
+- [ ] State 2: `[✨ AI]` badge disappears when user manually edits a field
+- [ ] State 2: Fields extraction couldn't populate show amber highlight with helper text
+- [ ] State 2: Original brief is preserved in collapsible banner with "Re-extract" and "Edit original" actions
+- [ ] State 2: All required fields validate before Generate button enables
+- [ ] State 2: LOI info note displays correctly (non-interactive, informational)
+- [ ] State 2: File upload (stimulus) accepts drag-and-drop and file picker
+- [ ] State 2: Competitor inputs can be added (up to 6) and removed
+- [ ] State 2: Generate button triggers generation pipeline with progress display
+- [ ] Generation progress shows real-time step updates
+- [ ] Successful generation auto-navigates to Editor with survey loaded
+- [ ] Generation errors display clearly with actionable guidance
+- [ ] Brief data persists — returning to setup from editor shows State 2 with previously entered/extracted data
+- [ ] Country dropdown is searchable
+
+### Task Breakdown
+
+| # | Task | Est. Effort | Notes |
+|---|------|-------------|-------|
+| 0.1 | Build global header + navigation shell | 0.5 days | Persistent across all pages |
+| 0.2 | Build Dashboard page with project cards | 1 day | Grid layout, status badges, filter tabs |
+| 0.3 | Build Dashboard empty state | 0.25 days | |
+| 0.4 | Set up routing between all pages | 0.5 days | Route definitions + state gating logic |
+| 1.1 | Build Setup page State 1 layout (paste area + upload + extract button) | 0.5 days | |
+| 1.2 | Build brief file upload → text extraction (PDF/docx/txt to textarea) | 0.5 days | Use existing file parsing libs |
+| 1.3 | Build brief extraction LLM call + progress display | 1 day | LLM prompt to parse unstructured brief into structured fields |
+| 1.4 | Build State 1 → State 2 transition (with extraction results populating fields) | 0.5 days | Smooth transition or page swap |
+| 1.5 | Build State 2 form layout with all field sections | 1 day | Inputs, textareas, dropdown, competitor list |
+| 1.6 | Build `[✨ AI]` badge logic (show on extracted fields, hide on edit) | 0.25 days | |
+| 1.7 | Build Original Brief collapsible banner with re-extract and edit actions | 0.5 days | |
+| 1.8 | Build file upload component for stimulus materials | 0.5 days | Drag-drop + file picker + file chips |
+| 1.9 | Build LOI info note (non-interactive, points user to editor) | 0.1 days | Simple info box |
+| 1.10 | Build form validation + Generate button | 0.25 days | Required field checks, amber highlights |
+| 1.11 | Build generation progress display | 0.5 days | Step list with status icons |
+| 1.12 | Wire generate button to extract_brief.py → generate_survey.py pipeline | 1 day | API call + status polling or streaming |
+| 1.13 | Build error state display | 0.25 days | |
+| 1.14 | Build methodology preview badges (optional enhancement) | 0.5 days | Can defer to post-MVP |
+| 1.15 | Build "fill in manually" path (skip extraction, show empty State 2) | 0.25 days | |
+| 1.16 | Test full flow: paste brief → extract → review → generate → editor | 0.5 days | |
+
+---
+
+## Updated Total Effort Including Setup + Navigation
+
+| Phase | Description | Estimated Days |
+|-------|-------------|----------------|
+| 0 | Global nav + Dashboard + Routing | 2.25 |
+| 1 (new) | Setup Page (paste → extract → refine → generate) | 7-8 |
+| 1 (original) | Survey Skills (10 use cases) | 12-14 |
+| 2 | LOI Slider Functionality | 9-10 |
+| 3 | Edit Function | 7-8 |
+| 4 | Test / Preview + Comments + AI Edit Loop | 10-12 |
+| 5 | Reporting Function | 12-14 |
+| 6 | Launch Function | 4-5 |
+| — | **Total** | **63-72 days** |
+
+### Updated Build Order
+
+```
+Phase 0:  Global nav + Dashboard + Routing          (foundation)
+Phase 1a: Setup page                                 (entry point)
+Phase 1b: Survey Skills updates                      (generation engine)
+Phase 2:  LOI Functionality                          (wired into setup + editor)
+Phase 3:  Edit Function                              (editor page)
+Phase 4:  Test / Preview                             (preview page)
+Phase 5:  Reporting                                  (report page)
+Phase 6:  Launch                                     (launch wizard + status page)
+```
+
+Build the navigation shell and setup page first — this gives you a working front door and lets you demo the brief-to-survey generation flow early, even before the editor is built.
+
+---
+
+## Navigation State Management
+
+### Project State Machine
+
+```
+                    ┌──────────┐
+       create       │          │    generate_survey()
+  ────────────────► │  DRAFT   │ ──────────────────────┐
+                    │ (brief   │                        │
+                    │  only)   │                        ▼
+                    └──────────┘               ┌──────────────┐
+                                               │              │
+                                               │    DRAFT     │
+                                    ┌────────► │  (has survey) │
+                                    │          │              │
+                                    │          └──────┬───────┘
+                                    │                 │
+                                    │    edit         │  launch()
+                                    │                 │
+                                    │          ┌──────▼───────┐
+                                    │          │              │
+                                    └──────────│     LIVE     │
+                                               │  (fielding)  │
+                                               └──────┬───────┘
+                                                      │
+                                                      │  field_complete()
+                                                      │
+                                               ┌──────▼───────┐
+                                               │              │
+                                               │  COMPLETED   │
+                                               │  (has data)  │
+                                               └──────────────┘
+```
+
+### What Each State Unlocks
+
+| State | Accessible Pages | Primary CTA |
+|-------|-----------------|-------------|
+| DRAFT (brief only) | Dashboard, Setup | "Generate Survey" |
+| DRAFT (has survey) | Dashboard, Setup, Editor, Preview | "Launch" (in editor header) |
+| LIVE | Dashboard, Setup (read-only), Editor (read-only), Status | "View Status" |
+| COMPLETED | Dashboard, Setup (read-only), Editor (read-only), Report | "View Report" |
+
+### Breadcrumb Behavior Per Page
+
+| Page | Breadcrumb |
+|------|-----------|
+| Dashboard | (none — this is the root) |
+| Setup (new) | My Studies › New Study |
+| Setup (existing) | My Studies › [Project Name] › Brief |
+| Editor | My Studies › [Project Name] › Editor |
+| Preview | My Studies › [Project Name] › Preview |
+| Launch | My Studies › [Project Name] › Launch |
+| Status | My Studies › [Project Name] › Status |
+| Report | My Studies › [Project Name] › Report |
