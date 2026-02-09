@@ -57,13 +57,16 @@ async def generate_survey(request: GenerateSurveyRequest) -> Dict[str, Any]:
         # Generate survey
         print(f"Generating survey with brief: {brief_for_generator}")
         survey_json = generator.generate(brief_for_generator, stream_output=False)
+        print(f"Survey generation result: {type(survey_json)}, has data: {survey_json is not None}")
         
         if not survey_json:
             raise ValueError("Survey generation returned no result")
         
+        print(f"Survey has {len(survey_json.get('sections', []))} sections")
+        
         # For now, return without validation
         # TODO: Add validation step
-        return {
+        result = {
             "success": True,
             "data": {
                 "survey": survey_json,
@@ -75,6 +78,8 @@ async def generate_survey(request: GenerateSurveyRequest) -> Dict[str, Any]:
                 }
             }
         }
+        print(f"Returning result: success={result['success']}, has survey: {'survey' in result.get('data', {})}")
+        return result
         
     except Exception as e:
         traceback.print_exc()

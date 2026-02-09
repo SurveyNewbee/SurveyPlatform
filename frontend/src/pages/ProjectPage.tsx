@@ -56,6 +56,8 @@ export default function ProjectPage() {
       project.brief_data.identified_skills || []
     );
 
+    console.log('Generate survey response:', response);
+
     if (response.success && response.data) {
       // Update project with survey and validation log
       const updateResponse = await updateProject(projectId, {
@@ -67,7 +69,8 @@ export default function ProjectPage() {
         await loadProject();
         setSelectedTab('survey');
       } else {
-        setGenerateError('Survey generated but failed to save');
+        console.error('Failed to update project:', updateResponse);
+        setGenerateError(`Survey generated but failed to save: ${updateResponse.error || 'Unknown error'}`);
       }
     } else {
       setGenerateError(response.error || 'Failed to generate survey');
@@ -286,40 +289,85 @@ export default function ProjectPage() {
             <>
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p className="text-green-900">
-                  ✓ Survey generated successfully with{' '}
-                  <strong>{project.survey_json.sections?.length || 0}</strong> sections
+                  ✓ Survey generated successfully
                 </p>
               </div>
 
-              {/* Survey Structure */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                  Survey Structure
-                </h3>
-                
-                {project.survey_json.sections?.map((section: any, idx: number) => (
-                  <div key={idx} className="mb-6 last:mb-0 border-l-4 border-blue-500 pl-4">
-                    <h4 className="font-semibold text-gray-800 mb-2">
-                      Section {idx + 1}: {section.title}
-                    </h4>
-                    {section.description && (
-                      <p className="text-sm text-gray-600 mb-3">{section.description}</p>
-                    )}
-                    <div className="space-y-2">
-                      {section.questions?.map((question: any, qIdx: number) => (
-                        <div key={qIdx} className="bg-gray-50 rounded p-3">
-                          <p className="text-sm font-medium text-gray-700 mb-1">
-                            Q{qIdx + 1}. {question.text}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Type: {question.type} | ID: {question.id}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+              {/* Study Metadata */}
+              {project.survey_json.STUDY_METADATA && (
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Study Overview</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Type:</strong> {project.survey_json.STUDY_METADATA.study_type}</p>
+                    <p><strong>Estimated LOI:</strong> {project.survey_json.STUDY_METADATA.estimated_loi_minutes} minutes</p>
+                    <p className="text-gray-700">{project.survey_json.STUDY_METADATA.description}</p>
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {/* Sample Requirements */}
+              {project.survey_json.SAMPLE_REQUIREMENTS && (
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Sample Design</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Total Sample:</strong> n={project.survey_json.SAMPLE_REQUIREMENTS.total_sample}</p>
+                    <p><strong>Target Audience:</strong> {project.survey_json.SAMPLE_REQUIREMENTS.target_audience_summary}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Screener Questions */}
+              {project.survey_json.SCREENER && (
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4 border-l-4 border-blue-500 pl-4">
+                    Screener ({project.survey_json.SCREENER.questions?.length || 0} questions)
+                  </h3>
+                  <div className="space-y-3">
+                    {project.survey_json.SCREENER.questions?.map((q: any, idx: number) => (
+                      <div key={idx} className="bg-gray-50 rounded p-4">
+                        <p className="font-medium text-gray-800 mb-2">
+                          {q.question_id}. {q.question_text}
+                        </p>
+                        <p className="text-xs text-gray-500 mb-2">Type: {q.question_type}</p>
+                        {q.options && q.options.length > 0 && (
+                          <ul className="text-sm text-gray-600 ml-4 space-y-1">
+                            {q.options.slice(0, 5).map((opt: string, i: number) => (
+                              <li key={i}>• {opt}</li>
+                            ))}
+                            {q.options.length > 5 && (
+                              <li className="text-gray-400">... and {q.options.length - 5} more options</li>
+                            )}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Main Survey */}
+              {project.survey_json.MAIN_SURVEY && (
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4 border-l-4 border-green-500 pl-4">
+                    Main Survey ({project.survey_json.MAIN_SURVEY.questions?.length || 0} questions)
+                  </h3>
+                  <div className="space-y-3">
+                    {project.survey_json.MAIN_SURVEY.questions?.slice(0, 10).map((q: any, idx: number) => (
+                      <div key={idx} className="bg-gray-50 rounded p-4">
+                        <p className="font-medium text-gray-800 mb-2">
+                          {q.question_id}. {q.question_text}
+                        </p>
+                        <p className="text-xs text-gray-500">Type: {q.question_type}</p>
+                      </div>
+                    ))}
+                    {project.survey_json.MAIN_SURVEY.questions && project.survey_json.MAIN_SURVEY.questions.length > 10 && (
+                      <p className="text-sm text-gray-500 italic text-center">
+                        ... and {project.survey_json.MAIN_SURVEY.questions.length - 10} more questions
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="bg-white rounded-lg shadow-md p-6">
