@@ -193,7 +193,7 @@ export default function QuestionCard({
 
 function renderQuestionContent(q: any, colors: typeof COLOR_CLASSES.blue) {
   // Matrix questions
-  if (q.rows && q.columns) {
+  if (Array.isArray(q.rows) && Array.isArray(q.columns)) {
     return (
       <div className="mt-4 overflow-x-auto">
         <div className="inline-block min-w-full">
@@ -231,7 +231,7 @@ function renderQuestionContent(q: any, colors: typeof COLOR_CLASSES.blue) {
   }
   
   // Questions with options
-  if (q.options && q.options.length > 0) {
+  if (Array.isArray(q.options) && q.options.length > 0) {
     return (
       <div className="mt-2">
         <p className="text-xs font-medium text-gray-500 mb-1">Options:</p>
