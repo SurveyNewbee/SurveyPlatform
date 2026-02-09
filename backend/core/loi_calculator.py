@@ -225,39 +225,73 @@ class LOICalculator:
         """
         Determine if a question should be visible at a given slider position.
         
-        Logic:
-        - 0-30: Only "required" questions
-        - 30-70: "required" + progressively add "recommended" by priority_rank
-        - 70-100: "required" + "recommended" + progressively add "optional" by priority_rank
+        Uses priority thresholds that expand based on slider position:
+        - Quick (0-30): Only "required" questions shown
+        - Standard (30-70): "required" + progressively add "recommended" by priority_rank
+        - Deep (70-100): All "required" and "recommended", + progressively add "optional" by priority_rank
+        
+        Within each tier, lower priority_rank questions are shown first.
         """
         if priority == "required":
+            # Always show required questions
             return True
         
         if priority == "recommended":
-            # Standard tier starts at position 30, fully includes all recommended by 70
-            if slider_position < 30:
+            # Below Quick tier: hide all recommended
+            if slider_position <= 30:
                 return False
-            elif slider_position >= 70:
+            
+            # At or above Deep tier: show all recommended
+            if slider_position >= 70:
                 return True
-            else:
-                # Interpolate: add recommended questions progressively
-                # Lower priority_rank questions appear first
-                progress = (slider_position - 30) / 40  # 0 to 1 over range 30-70
-                # This is simplified - in production you'd sort by priority_rank
-                return priority_rank <= 10 or progress > 0.5
+            
+            # In Standard tier (30-70): progressive show based on priority_rank
+            # Calculate what percentage through the Standard tier we are
+            progress = (slider_position - 30) / 40  # 0.0 at position 30, 1.0 at position 70
+            
+            # Get max priority_rank among recommended questions
+            max_recommended_rank = self._get_max_priority_rank("recommended")
+            
+            # Calculate threshold: at position 30, show rank 1 only; at 70, show all
+            # Use ceiling so we always show at least 1 question
+            rank_threshold = max(1, round(progress * max_recommended_rank))
+            
+            return priority_rank <= rank_threshold
         
         if priority == "optional":
-            # Deep tier starts at position 70, fully includes all optional by 100
+            # Below Deep tier: hide all optional
             if slider_position < 70:
                 return False
-            elif slider_position >= 100:
+            
+            # At max position: show all optional
+            if slider_position >= 100:
                 return True
-            else:
-                # Interpolate: add optional questions progressively
-                progress = (slider_position - 70) / 30  # 0 to 1 over range 70-100
-                return priority_rank <= 5 or progress > 0.5
+            
+            # In Deep tier (70-100): progressive show based on priority_rank
+            progress = (slider_position - 70) / 30  # 0.0 at position 70, 1.0 at position 100
+            
+            # Get max priority_rank among optional questions
+            max_optional_rank = self._get_max_priority_rank("optional")
+            
+            # Calculate threshold
+            rank_threshold = max(1, round(progress * max_optional_rank))
+            
+            return priority_rank <= rank_threshold
         
+        # Unknown priority - default to showing
         return True
+    
+    def _get_max_priority_rank(self, priority_level: str) -> int:
+        """Get the maximum priority_rank value for a given priority level."""
+        all_questions = self._get_all_questions()
+        max_rank = 1
+        
+        for question in all_questions:
+            if question.get("priority") == priority_level:
+                rank = question.get("priority_rank", 1)
+                max_rank = max(max_rank, rank)
+        
+        return max_rank
     
     def _get_all_questions(self) -> List[Dict[str, Any]]:
         """Get flat list of all questions in survey."""

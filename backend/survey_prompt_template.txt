@@ -334,10 +334,57 @@ Field rules:
 - required: Whether the question requires a response. Default true.
 - notes: OPTIONAL. Programming notes, analysis notes, or rationale for the question.
 - priority: REQUIRED. One of "required", "recommended", or "optional". Controls LOI tier visibility:
-  * "required" = included in Quick tier (essential questions only)
-  * "recommended" = included in Standard tier (balanced depth)
-  * "optional" = only in Deep tier (maximum diagnostic depth)
-- priority_rank: REQUIRED. Number 1-N for ordering within each priority level. Lower numbers appear first when slider moves between tiers.
+  * "required" = included in Quick tier (essential questions only - core data for primary research objectives)
+  * "recommended" = included in Standard tier (balanced depth - diagnostic and segmentation questions)
+  * "optional" = only in Deep tier (maximum diagnostic depth - nice-to-have deep-dives)
+  
+  PRIORITY ASSIGNMENT GUIDELINES:
+  Aim for balanced distribution: ~40-50% required, ~30-40% recommended, ~20-30% optional
+  
+  REQUIRED questions (Quick tier - must answer primary research objective):
+  - All screener questions (qualification, quotas, exclusions)
+  - Core demographic quotas (e.g., gender, age if quota'd)
+  - Primary research objective questions (e.g., purchase behavior, brand usage, main satisfaction drivers)
+  - Key funnel stages (awareness, consideration, purchase, loyalty)
+  - Essential metrics (NPS on primary brand, category frequency)
+  - Questions needed for primary deliverable calculations
+  
+  RECOMMENDED questions (Standard tier - add diagnostic depth):
+  - Extended demographics (income, education, household size, etc.)
+  - Secondary attribute batteries
+  - Brand image perception grids (if not core objective)
+  - Channel/format usage details
+  - Price sensitivity and spend allocation
+  - Verbatim follow-ups to key metrics
+  - Behavioral segmentation questions
+  
+  OPTIONAL questions (Deep tier - extended diagnostics):
+  - Large attribute batteries (>8 rows)
+  - Detailed competitive benchmarking beyond top brands
+  - Extended verbatims (e.g., "why did you stop using Brand Y?")
+  - Tertiary research objectives
+  - Future intent questions (12+ month outlook)
+  - Detailed reason grids ("rate importance of each of these 12 factors...")
+  - Brand tenure, lifecycle, historical usage patterns
+  - Open-ended exploration questions
+  
+  EXAMPLES by study type:
+  Market Share Tracking:
+    - Required: Current brand usage, purchase frequency, share of wallet, primary brand
+    - Recommended: Brand awareness funnel, channel usage, switching patterns
+    - Optional: Brand image batteries, extended switching verbatims, future intent
+  
+  Brand Health:
+    - Required: Brand awareness, NPS, satisfaction, purchase intent
+    - Recommended: Attribute ratings, competitor comparison, segmentation
+    - Optional: Brand personality grids, emotional connection batteries, lifecycle journey
+  
+  Concept Testing:
+    - Required: Purchase intent, uniqueness, believability, concept preference
+    - Recommended: Attribute diagnostics, price sensitivity, target audience fit
+    - Optional: Verbatim feedback, extended strengths/weaknesses, comparison grids
+
+- priority_rank: REQUIRED. Number 1-N for ordering within each priority level. Lower numbers appear first when slider moves between tiers. Use this to control the sequence questions appear as the user increases survey depth.
 - estimated_seconds: REQUIRED. Expected completion time for this question. Use these guidelines:
   * Single choice (3-5 options): 5-8 seconds
   * Single choice (6-10 options): 8-12 seconds
