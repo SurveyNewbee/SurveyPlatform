@@ -27,6 +27,59 @@ export interface ExtractedBrief {
   budget?: string;
   timeline?: string;
   identified_skills: string[];
+  
+  // Sample design
+  total_sample_size?: number;
+  quotas?: Array<{
+    attribute: string;
+    type: 'hard' | 'soft';
+    groups: Array<{
+      label: string;
+      min?: number;
+      max?: number;
+      proportion?: number;
+    }>;
+  }>;
+  
+  // Market context
+  market_context?: {
+    client_brand?: string | null;
+    competitor_brands?: string[];
+    category?: string | null;
+    market?: string | null;
+  };
+  
+  // Study classification
+  study_type?: string;
+  primary_methodology?: string;
+  secondary_objectives?: string[];
+  
+  // Operational details
+  operational?: {
+    target_loi_minutes?: number;
+    fieldwork_mode?: string;
+    market_specifics?: string;
+    quality_controls?: string[];
+    constraints?: string;
+  };
+  
+  // Study design
+  study_design?: any;
+  
+  // Measurement guidance
+  measurement_guidance?: {
+    measurement_priority?: string;
+    required_outputs?: string[];
+    segmentation_intent?: string;
+    benchmarking?: string;
+  };
+  
+  // Problem frame
+  problem_frame?: {
+    decision_stage?: string;
+    primary_problem?: string;
+    decision_risk_level?: string;
+  };
 }
 
 export interface Skill {

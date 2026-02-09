@@ -205,6 +205,138 @@ export default function SetupPage() {
             )}
           </div>
 
+          {/* Sample Design */}
+          {(extractedBrief?.total_sample_size || extractedBrief?.quotas) && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Sample Design</h3>
+              
+              {extractedBrief.total_sample_size && (
+                <div className="mb-4">
+                  <span className="text-sm text-gray-600">Total Sample:</span>
+                  <p className="text-gray-800 font-semibold text-lg">n={extractedBrief.total_sample_size}</p>
+                </div>
+              )}
+              
+              {extractedBrief.quotas && extractedBrief.quotas.length > 0 && (
+                <div>
+                  <span className="text-sm text-gray-600 mb-2 block">Quotas:</span>
+                  <div className="space-y-3">
+                    {extractedBrief.quotas.map((quota, idx) => (
+                      <div key={idx} className="border-l-4 border-blue-400 pl-3">
+                        <p className="font-medium text-gray-800 capitalize">
+                          {quota.attribute} ({quota.type} quota)
+                        </p>
+                        <div className="mt-1 space-y-1">
+                          {quota.groups.map((group, gIdx) => (
+                            <div key={gIdx} className="text-sm text-gray-600 flex justify-between">
+                              <span>{group.label}:</span>
+                              <span className="font-medium">
+                                {group.min && group.max && group.min === group.max 
+                                  ? `n=${group.min}` 
+                                  : group.min 
+                                    ? `min ${group.min}${group.max ? `, max ${group.max}` : ''}`
+                                    : group.proportion 
+                                      ? `${(group.proportion * 100).toFixed(0)}%`
+                                      : 'Not specified'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Market Context */}
+          {extractedBrief?.market_context && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Market Context</h3>
+              <div className="space-y-2 text-sm">
+                {extractedBrief.market_context.client_brand && (
+                  <div>
+                    <span className="text-gray-600">Client Brand:</span>{' '}
+                    <span className="text-gray-800 font-medium">{extractedBrief.market_context.client_brand}</span>
+                  </div>
+                )}
+                {extractedBrief.market_context.category && (
+                  <div>
+                    <span className="text-gray-600">Category:</span>{' '}
+                    <span className="text-gray-800 font-medium">{extractedBrief.market_context.category}</span>
+                  </div>
+                )}
+                {extractedBrief.market_context.market && (
+                  <div>
+                    <span className="text-gray-600">Market:</span>{' '}
+                    <span className="text-gray-800 font-medium">{extractedBrief.market_context.market}</span>
+                  </div>
+                )}
+                {extractedBrief.market_context.competitor_brands && extractedBrief.market_context.competitor_brands.length > 0 && (
+                  <div>
+                    <span className="text-gray-600">Competitors:</span>{' '}
+                    <span className="text-gray-800">{extractedBrief.market_context.competitor_brands.join(', ')}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Study Classification */}
+          {(extractedBrief?.study_type || extractedBrief?.primary_methodology) && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Study Classification</h3>
+              <div className="space-y-2 text-sm">
+                {extractedBrief.study_type && (
+                  <div>
+                    <span className="text-gray-600">Study Type:</span>{' '}
+                    <span className="text-gray-800 font-medium capitalize">{extractedBrief.study_type.replace(/_/g, ' ')}</span>
+                  </div>
+                )}
+                {extractedBrief.primary_methodology && (
+                  <div>
+                    <span className="text-gray-600">Primary Methodology:</span>{' '}
+                    <span className="text-gray-800 font-medium capitalize">{extractedBrief.primary_methodology.replace(/_/g, ' ')}</span>
+                  </div>
+                )}
+                {extractedBrief.secondary_objectives && extractedBrief.secondary_objectives.length > 0 && (
+                  <div>
+                    <span className="text-gray-600">Secondary Objectives:</span>{' '}
+                    <span className="text-gray-800">{extractedBrief.secondary_objectives.join(', ')}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Operational Details */}
+          {extractedBrief?.operational && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Operational Details</h3>
+              <div className="space-y-2 text-sm">
+                {extractedBrief.operational.target_loi_minutes && (
+                  <div>
+                    <span className="text-gray-600">Target LOI:</span>{' '}
+                    <span className="text-gray-800 font-medium">{extractedBrief.operational.target_loi_minutes} minutes</span>
+                  </div>
+                )}
+                {extractedBrief.operational.fieldwork_mode && (
+                  <div>
+                    <span className="text-gray-600">Fieldwork Mode:</span>{' '}
+                    <span className="text-gray-800 font-medium">{extractedBrief.operational.fieldwork_mode}</span>
+                  </div>
+                )}
+                {extractedBrief.operational.market_specifics && (
+                  <div>
+                    <span className="text-gray-600">Market Specifics:</span>{' '}
+                    <span className="text-gray-800">{extractedBrief.operational.market_specifics}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Timeline & Budget */}
           {(extractedBrief?.timeline || extractedBrief?.budget) && (
             <div className="bg-white rounded-lg shadow-md p-6">
