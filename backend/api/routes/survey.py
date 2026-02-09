@@ -27,6 +27,7 @@ async def generate_survey(request: GenerateSurveyRequest) -> Dict[str, Any]:
     """
     try:
         from generate_survey import SurveyGenerator
+        from loi_calculator import LOICalculator
         
         # Transform frontend brief_data into format expected by SurveyGenerator
         # Frontend sends: {objectives, target_audience, topics, identified_skills, timeline, budget}
@@ -63,6 +64,12 @@ async def generate_survey(request: GenerateSurveyRequest) -> Dict[str, Any]:
             raise ValueError("Survey generation returned no result")
         
         print(f"Survey has {len(survey_json.get('sections', []))} sections")
+        
+        # Add LOI configuration with default slider position at Standard tier
+        print("Adding LOI configuration...")
+        loi_calc = LOICalculator(survey_json)
+        survey_json = loi_calc.add_loi_config(initial_position=50)
+        print(f"LOI config added: {survey_json.get('loi_config', {})}")
         
         # For now, return without validation
         # TODO: Add validation step
@@ -145,3 +152,171 @@ async def render_preview(survey: Dict[str, Any]) -> Dict[str, Any]:
                 "message": str(e)
             }
         )
+
+
+@router.post("/update-loi")
+async def update_loi(request: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Update LOI configuration based on slider position.
+    
+    Request body:
+    {
+        "survey": {...},
+        "slider_position": 50
+    }
+    
+    Returns updated survey with new loi_config.
+    """
+    try:
+        from loi_calculator import LOICalculator
+        
+        survey = request.get("survey")
+        slider_position = request.get("slider_position", 50)
+        
+        if not survey:
+            raise ValueError("Survey data required")
+        
+        # Update LOI configuration
+        loi_calc = LOICalculator(survey)
+        loi_config = loi_calc.update_loi_config(slider_position)
+        
+        return {
+            "success": True,
+            "data": {
+                "survey": survey,
+                "loi_config": loi_config
+            }
+        }
+        
+    except Exception as e:
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.post("/pin-question")
+async def pin_question(request: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Pin a question to always show it regardless of LOI setting.
+    
+    Request body:
+    {
+        "survey": {...},
+        "question_id": "MS1_Q1"
+    }
+    
+    Returns updated survey and loi_config.
+    """
+    try:
+        from loi_calculator import LOICalculator
+        
+        survey = request.get("survey")
+        question_id = request.get("question_id")
+        
+        if not survey or not question_id:
+            raise ValueError("Survey and question_id required")
+        
+        # Pin question
+        loi_calc = LOICalculator(survey)
+        loi_config = loi_calc.pin_question(question_id)
+        
+        return {
+            "success": True,
+            "data": {
+                "survey": survey,
+                "loi_config": loi_config
+            }
+        }
+        
+    except Exception as e:
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.post("/exclude-question")
+async def exclude_question(request: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Exclude a question to always hide it regardless of LOI setting.
+    
+    Request body:
+    {
+        "survey": {...},
+        "question_id": "MS1_Q1"
+    }
+    
+    Returns updated survey and loi_config.
+    """
+    try:
+        from loi_calculator import LOICalculator
+        
+        survey = request.get("survey")
+        question_id = request.get("question_id")
+        
+        if not survey or not question_id:
+            raise ValueError("Survey and question_id required")
+        
+        # Exclude question
+        loi_calc = LOICalculator(survey)
+        loi_config = loi_calc.exclude_question(question_id)
+        
+        return {
+            "success": True,
+            "data": {
+                "survey": survey,
+                "loi_config": loi_config
+            }
+        }
+        
+    except Exception as e:
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.post("/reset-question-override")
+async def reset_question_override(request: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Reset a question's override to default LOI-based visibility.
+    
+    Request body:
+    {
+        "survey": {...},
+        "question_id": "MS1_Q1"
+    }
+    
+    Returns updated survey and loi_config.
+    """
+    try:
+        from loi_calculator import LOICalculator
+        
+        survey = request.get("survey")
+        question_id = request.get("question_id")
+        
+        if not survey or not question_id:
+            raise ValueError("Survey and question_id required")
+        
+        # Reset override
+        loi_calc = LOICalculator(survey)
+        loi_config = loi_calc.reset_question_override(question_id)
+        
+        return {
+            "success": True,
+            "data": {
+                "survey": survey,
+                "loi_config": loi_config
+            }
+        }
+        
+    except Exception as e:
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        }

@@ -319,7 +319,10 @@ Every question MUST be a JSON object with ALL of these fields:
   "display_logic": null,
   "piping": null,
   "required": true,
-  "notes": null
+  "notes": null,
+  "priority": "required | recommended | optional",
+  "priority_rank": 1,
+  "estimated_seconds": 8
 }}
 
 Field rules:
@@ -330,6 +333,20 @@ Field rules:
 - piping: OPTIONAL. Describe text substitution sources (e.g., "Pipe in brands selected at MS2_Q2").
 - required: Whether the question requires a response. Default true.
 - notes: OPTIONAL. Programming notes, analysis notes, or rationale for the question.
+- priority: REQUIRED. One of "required", "recommended", or "optional". Controls LOI tier visibility:
+  * "required" = included in Quick tier (essential questions only)
+  * "recommended" = included in Standard tier (balanced depth)
+  * "optional" = only in Deep tier (maximum diagnostic depth)
+- priority_rank: REQUIRED. Number 1-N for ordering within each priority level. Lower numbers appear first when slider moves between tiers.
+- estimated_seconds: REQUIRED. Expected completion time for this question. Use these guidelines:
+  * Single choice (3-5 options): 5-8 seconds
+  * Single choice (6-10 options): 8-12 seconds
+  * Multiple choice: 10-15 seconds
+  * Matrix (5 rows): 15-25 seconds
+  * Matrix (10 rows): 30-45 seconds
+  * Open-ended: 20-40 seconds
+  * Ranking (3-5 items): 15-25 seconds
+  * Add 3-5 seconds for complex wording or piping
 
 ---
 
