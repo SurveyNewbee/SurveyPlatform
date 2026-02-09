@@ -415,6 +415,25 @@ export default function SetupPage() {
           Choose the research methodologies for your survey. Recommended skills are pre-selected.
         </p>
 
+        {/* Info banner about blueprint-based generation */}
+        {allSkills.length === 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="text-sm text-blue-900 font-medium mb-1">New Blueprint-Based Generation</p>
+                <p className="text-sm text-blue-800">
+                  This platform now uses an intelligent two-agent workflow. The AI will automatically design 
+                  a custom survey blueprint based on your brief during the generation process. Manual methodology 
+                  selection is no longer required.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Project Name & Description */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Project Information</h3>
@@ -529,7 +548,13 @@ export default function SetupPage() {
         {/* Selection Summary */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <p className="text-sm text-blue-900">
-            <strong>{selectedSkills.length}</strong> methodolog{selectedSkills.length === 1 ? 'y' : 'ies'} selected
+            {allSkills.length === 0 ? (
+              <>Ready to proceed with blueprint-based generation</>
+            ) : (
+              <>
+                <strong>{selectedSkills.length}</strong> methodolog{selectedSkills.length === 1 ? 'y' : 'ies'} selected
+              </>
+            )}
           </p>
         </div>
 
@@ -537,7 +562,7 @@ export default function SetupPage() {
         <div className="flex space-x-4">
           <button
             onClick={handleCreateProject}
-            disabled={creating || !projectName.trim() || selectedSkills.length === 0}
+            disabled={creating || !projectName.trim()}
             className="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
           >
             {creating ? 'Creating Project...' : 'Create Project & Continue'}

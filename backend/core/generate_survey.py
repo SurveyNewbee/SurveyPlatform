@@ -246,23 +246,21 @@ class Survey(BaseModel):
 
 
 class SurveyGenerator:
-    """Model-agnostic survey generator with skills integration and streaming support."""
+    """Survey generator that executes approved blueprint (Agent 2)."""
 
     def __init__(
         self, 
         llm=None, 
-        model_name: str = "claude-opus-4-5-20251101", 
-        temperature: float = 1.0,
-        skills_dir: Path = Path("skills")
+        model_name: str = "claude-sonnet-4-5-20250929", 
+        temperature: float = 1.0
     ):
         """
         Initialize with any LangChain-compatible LLM.
 
         Args:
             llm: Pre-configured LLM instance (optional). If provided, model_name is ignored.
-            model_name: Model identifier if llm not provided
+            model_name: Model identifier if llm not provided (default: claude-sonnet-4-5-20250929)
             temperature: Temperature setting if llm not provided
-            skills_dir: Path to skills directory containing .md files
         """
         if llm is not None:
             self.llm = llm
@@ -273,63 +271,13 @@ class SurveyGenerator:
             else:
                 self.llm = ChatOpenAI(model=model_name, temperature=temperature)
 
-        self.skills_dir = skills_dir
         self.parser = JsonOutputParser()
         self.prompt = self._load_prompt()
         self.chain = self.prompt | self.llm | RunnableLambda(strip_task_plan) | self.parser
 
-    def _load_skill_content(self, skill_names: List[str]) -> str:
-        """
-        Load skill content dynamically based on requested skill names.
-        
-        This function is called at generation time to load only the skills
-        needed for the current survey.
-        
-        Args:
-            skill_names: List of skill names to load
-            
-        Returns:
-            Concatenated skill content with clear separators
-        """
-        if not skill_names:
-            return "No specific skills requested. Use general survey design best practices."
-        
-        skill_contents = []
-        loaded_skills = []
-        missing_skills = []
-        
-        for skill_name in skill_names:
-            skill_path = self.skills_dir / f"{skill_name}.md"
-            
-            if skill_path.exists():
-                try:
-                    content = skill_path.read_text(encoding="utf-8")
-                    skill_contents.append(f"### SKILL: {skill_name}\n\n{content}\n")
-                    loaded_skills.append(skill_name)
-                except Exception as e:
-                    print(f"⚠ Warning: Could not load skill '{skill_name}': {e}")
-                    missing_skills.append(skill_name)
-            else:
-                print(f"⚠ Warning: Skill file not found: {skill_path}")
-                missing_skills.append(skill_name)
-        
-        if loaded_skills:
-            print(f"✓ Loaded skills: {', '.join(loaded_skills)}")
-        if missing_skills:
-            print(f"⚠ Missing skills: {', '.join(missing_skills)}")
-        
-        if not skill_contents:
-            return "No skills were successfully loaded. Use general survey design best practices."
-        
-        header = f"## METHODOLOGY SKILLS REFERENCE\n\nThe following {len(skill_contents)} skill(s) contain specialized knowledge for this survey:\n\n"
-        return header + "\n---\n\n".join(skill_contents)
-
     def _load_prompt(self) -> ChatPromptTemplate:
         """
-        Load prompt template and configure dynamic skill loading.
-        
-        Uses LangChain's partial() method with callable to defer skill loading
-        until generation time, ensuring model-agnostic compatibility.
+        Load prompt template.
         """
         # Path relative to backend directory
         backend_dir = Path(__file__).parent.parent
@@ -347,7 +295,6 @@ class SurveyGenerator:
         prompt = ChatPromptTemplate.from_template(template_with_format)
 
         # Partial with format_instructions (static)
-        # Note: skills_content will be provided at generation time via invoke()
         return prompt.partial(
             format_instructions=self.parser.get_format_instructions()
         )
@@ -412,7 +359,7 @@ class SurveyGenerator:
         """
         Prepare template variables from brief data.
         
-        Dynamically loads skills based on brief_data["skills"] list.
+        Formats the approved survey blueprint for injection.
         Supports V2 schema with market_context, stimuli_content, and operational fields.
         """
         study_design = brief_data.get("study_design") or {}
@@ -425,9 +372,12 @@ class SurveyGenerator:
         # V2: Extract operational requirements
         operational = brief_data.get("operational") or {}
         
-        # Load skills dynamically based on brief
-        skill_names = brief_data.get("skills", [])
-        skills_content = self._load_skill_content(skill_names)
+        # NEW: Format survey_blueprint as JSON string for injection
+        survey_blueprint = brief_data.get("survey_blueprint")
+        if survey_blueprint:
+            survey_blueprint_str = json.dumps(survey_blueprint, indent=2)
+        else:
+            survey_blueprint_str = "No blueprint provided"
         
         # Format attribute_testing array for template
         attribute_testing = study_design.get("attribute_testing")
@@ -551,7 +501,7 @@ class SurveyGenerator:
             
             # Other fields
             quotas=quotas_str,
-            skills_content=skills_content,  # Dynamic skill content injection
+            survey_blueprint=survey_blueprint_str,  # NEW: Approved blueprint from Agent 1
         )
 
 

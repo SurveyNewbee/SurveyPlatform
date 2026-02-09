@@ -15,7 +15,7 @@ sys.path.insert(0, str(BACKEND_DIR / "core"))
 from api.models import APIResponse
 
 # Import from existing scripts
-from extract_brief import load_skills_metadata, BriefExtractor
+from extract_brief import BriefExtractor
 
 
 router = APIRouter()
@@ -48,7 +48,7 @@ async def extract_brief(request: Dict[str, Any]) -> Dict[str, Any]:
             "objectives": [result.get("objective", "")],  # Convert single to array
             "target_audience": result.get("target_audience", ""),
             "topics": result.get("key_dimensions", []),
-            "identified_skills": result.get("skills", []),
+            "survey_blueprint": result.get("survey_blueprint"),  # NEW: Blueprint replaces skills
         }
         
         # Add sample design fields
@@ -116,27 +116,15 @@ async def list_skills() -> Dict[str, Any]:
     """
     Get list of available survey methodology skills.
     
-    Returns all skills from the skills/ directory.
+    DEPRECATED: Skills are no longer used in the two-agent pipeline.
+    This endpoint is kept for backward compatibility but returns an empty list.
     """
     try:
-        skills_dir = BACKEND_DIR.parent / "skills"
-        
-        # Use the existing function
-        skills_data = load_skills_metadata(skills_dir)
-        
-        # Map to frontend Skill format with id extracted from path
-        skills = [
-            {
-                "id": Path(skill["path"]).stem,  # Use filename without .md as id
-                "name": skill["name"],
-                "description": skill["description"]
-            }
-            for skill in skills_data
-        ]
-        
+        # Return empty list - skills are no longer loaded or used
         return {
             "success": True,
-            "data": skills
+            "data": [],
+            "message": "Skills endpoint deprecated - blueprint-based generation is now used"
         }
         
     except Exception as e:

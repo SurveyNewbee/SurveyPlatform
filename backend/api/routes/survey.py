@@ -21,49 +21,38 @@ router = APIRouter()
 @router.post("/generate-survey")
 async def generate_survey(request: GenerateSurveyRequest) -> Dict[str, Any]:
     """
-    Generate survey from brief using AI.
+    Generate survey from approved brief using AI.
     
-    Takes extracted brief_data and selected_skills, generates survey using SurveyGenerator.
+    Takes approved brief_data (which includes survey_blueprint from Agent 1) and
+    generates the complete survey using Agent 2.
+    
+    The brief_data should be the full result from Agent 1 (extract-brief endpoint),
+    which has been reviewed and approved by the user.
     """
     try:
         from generate_survey import SurveyGenerator
         from loi_calculator import LOICalculator
         
-        # Transform frontend brief_data into format expected by SurveyGenerator
-        # Frontend sends: {objectives, target_audience, topics, identified_skills, timeline, budget}
-        # SurveyGenerator expects: {objective, target_audience, key_dimensions, skills, operational, ...}
-        brief_for_generator = {
-            "objective": request.brief_data.get("objectives", [""])[0] if request.brief_data.get("objectives") else "",
-            "target_audience": request.brief_data.get("target_audience", ""),
-            "key_dimensions": request.brief_data.get("topics", []),
-            "skills": request.selected_skills,
-        }
+        # brief_data now contains the full Agent 1 output including survey_blueprint
+        # No need to transform or select skills - just pass through to generator
+        brief_for_generator = request.brief_data
         
-        # Add optional operational fields if present
-        operational = {}
-        if request.brief_data.get("timeline"):
-            operational["timeline"] = request.brief_data["timeline"]
-        if request.brief_data.get("budget"):
-            operational["budget"] = request.brief_data["budget"]
-        if operational:
-            brief_for_generator["operational"] = operational
-        
-        # Get skills directory path
-        skills_dir = BACKEND_DIR.parent / "skills"
-        
-        # Create generator
-        print(f"Creating SurveyGenerator with skills_dir: {skills_dir}")
-        generator = SurveyGenerator(skills_dir=skills_dir)
+        # Create generator (no skills_dir needed anymore)
+        print(f"Creating SurveyGenerator...")
+        generator = SurveyGenerator()
         
         # Generate survey
-        print(f"Generating survey with brief: {brief_for_generator}")
+        print(f"Generating survey from approved brief with blueprint...")
         survey_json = generator.generate(brief_for_generator, stream_output=False)
         print(f"Survey generation result: {type(survey_json)}, has data: {survey_json is not None}")
         
         if not survey_json:
             raise ValueError("Survey generation returned no result")
         
-        print(f"Survey has {len(survey_json.get('sections', []))} sections")
+        # Check if survey has required top-level structure
+        has_main_section = 'MAIN_SECTION' in survey_json
+        subsection_count = len(survey_json.get('MAIN_SECTION', {}).get('sub_sections', [])) if has_main_section else 0
+        print(f"Survey has MAIN_SECTION: {has_main_section}, subsections: {subsection_count}")
         
         # Add LOI configuration with default slider position at Standard tier
         print("Adding LOI configuration...")

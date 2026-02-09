@@ -80,5 +80,6 @@ if __name__ == "__main__":
         host=host,
         port=port,
         reload=True,
+        reload_dirs=[str(BACKEND_DIR / "api"), str(BACKEND_DIR / "core")],
         log_level="info"
     )

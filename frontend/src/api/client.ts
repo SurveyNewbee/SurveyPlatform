@@ -41,12 +41,11 @@ export async function getSkills() {
 }
 
 // Survey Generation
-export async function generateSurvey(briefData: any, selectedSkills: string[]) {
+export async function generateSurvey(briefData: any) {
   return fetchAPI<{ survey: any; validation_log: ValidationLog }>('/api/generate-survey', {
     method: 'POST',
     body: JSON.stringify({
       brief_data: briefData,
-      selected_skills: selectedSkills,
     }),
   });
 }

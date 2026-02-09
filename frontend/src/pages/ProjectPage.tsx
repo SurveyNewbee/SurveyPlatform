@@ -54,10 +54,7 @@ export default function ProjectPage() {
     setGenerating(true);
     setGenerateError(null);
 
-    const response = await generateSurvey(
-      project.brief_data,
-      project.brief_data.identified_skills || []
-    );
+    const response = await generateSurvey(project.brief_data);
 
     console.log('Generate survey response:', response);
 
