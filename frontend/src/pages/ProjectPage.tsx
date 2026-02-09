@@ -393,61 +393,80 @@ export default function ProjectPage() {
               )}
 
               {/* Main Survey */}
-              {project.survey_json.MAIN_SURVEY && (
+              {project.survey_json.MAIN_SECTION && (
                 <div className="bg-white rounded-lg shadow-md p-6">
                   <h3 className="text-xl font-semibold text-gray-800 mb-4 border-l-4 border-green-500 pl-4">
-                    Main Survey ({project.survey_json.MAIN_SURVEY.questions?.length || 0} questions)
+                    Main Survey
                   </h3>
-                  <div className="space-y-4">
-                    {project.survey_json.MAIN_SURVEY.questions?.map((q: any, idx: number) => (
-                      <div key={idx} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div className="flex items-start justify-between mb-2">
-                          <p className="font-semibold text-gray-800">
-                            {q.question_id}
-                          </p>
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                            {q.question_type}
-                          </span>
-                        </div>
-                        <p className="text-gray-700 mb-3">{q.question_text}</p>
-                        
-                        {q.options && q.options.length > 0 && (
-                          <div className="mt-2">
-                            <p className="text-xs font-medium text-gray-500 mb-1">Options:</p>
-                            <ul className="space-y-1">
-                              {q.options.map((opt: string, i: number) => (
-                                <li key={i} className="text-sm text-gray-600 ml-4">
-                                  {i + 1}. {opt}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        
-                        {q.rows && q.columns && (
-                          <div className="mt-2">
-                            <p className="text-xs font-medium text-gray-500 mb-1">Matrix Grid:</p>
-                            <div className="text-xs text-gray-600 ml-4">
-                              <p>Rows: {q.rows.join(', ')}</p>
-                              <p>Columns: {q.columns.join(', ')}</p>
+                  {project.survey_json.MAIN_SECTION.sub_sections?.map((subsection: any, subIdx: number) => (
+                    <div key={subIdx} className="mb-6">
+                      <h4 className="text-lg font-semibold text-gray-700 mb-3 border-l-4 border-green-300 pl-3">
+                        {subsection.subsection_id}: {subsection.subsection_title}
+                      </h4>
+                      {subsection.purpose && (
+                        <p className="text-sm text-gray-600 mb-4 italic ml-3">
+                          {subsection.purpose}
+                        </p>
+                      )}
+                      <div className="space-y-4">
+                        {subsection.questions?.map((q: any, idx: number) => (
+                          <div key={idx} className="bg-gray-50 rounded-lg p-4 border border-gray-200 ml-3">
+                            <div className="flex items-start justify-between mb-2">
+                              <p className="font-semibold text-gray-800">
+                                {q.question_id}
+                              </p>
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                                {q.question_type}
+                              </span>
                             </div>
+                            <p className="text-gray-700 mb-3">{q.question_text}</p>
+                            
+                            {q.options && q.options.length > 0 && (
+                              <div className="mt-2">
+                                <p className="text-xs font-medium text-gray-500 mb-1">Options:</p>
+                                <ul className="space-y-1">
+                                  {q.options.map((opt: string, i: number) => (
+                                    <li key={i} className="text-sm text-gray-600 ml-4">
+                                      {i + 1}. {opt}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {q.rows && q.columns && (
+                              <div className="mt-2">
+                                <p className="text-xs font-medium text-gray-500 mb-1">Matrix Grid:</p>
+                                <div className="text-xs text-gray-600 ml-4">
+                                  <p>Rows: {q.rows.join(', ')}</p>
+                                  <p>Columns: {q.columns.join(', ')}</p>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {q.notes && (
+                              <div className="mt-2 text-xs text-gray-500 italic border-t border-gray-200 pt-2">
+                                Note: {q.notes}
+                              </div>
+                            )}
+                            
+                            {q.display_logic && (
+                              <div className="mt-2 text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded">
+                                Display Logic: {JSON.stringify(q.display_logic)}
+                              </div>
+                            )}
+                            
+                            {q.quota_attribute && (
+                              <div className="mt-2 text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
+                                Quota: {q.quota_type} quota on {q.quota_attribute}
+                                {q.quota_groups && ` (${q.quota_groups.join(', ')})`}
+                              </div>
+                            )}
                           </div>
-                        )}
-                        
-                        {q.notes && (
-                          <div className="mt-2 text-xs text-gray-500 italic border-t border-gray-200 pt-2">
-                            Note: {q.notes}
-                          </div>
-                        )}
-                        
-                        {q.display_logic && (
-                          <div className="mt-2 text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded">
-                            Display Logic: {JSON.stringify(q.display_logic)}
-                          </div>
-                        )}
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
