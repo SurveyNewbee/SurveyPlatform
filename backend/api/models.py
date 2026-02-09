@@ -74,24 +74,30 @@ class ProjectStatus(str):
 class CreateProjectRequest(BaseModel):
     """Request to create a new project."""
     name: str = Field(..., min_length=1, max_length=200)
-    raw_brief: Optional[str] = None
+    description: Optional[str] = None
+    brief_text: Optional[str] = None
+    brief_data: Optional[Dict[str, Any]] = None
 
 
 class UpdateProjectRequest(BaseModel):
     """Request to update a project."""
     name: Optional[str] = None
-    brief: Optional[Dict[str, Any]] = None
-    survey: Optional[Dict[str, Any]] = None
-    status: Optional[str] = None
+    description: Optional[str] = None
+    brief_text: Optional[str] = None
+    brief_data: Optional[Dict[str, Any]] = None
+    survey_json: Optional[Dict[str, Any]] = None
+    validation_log: Optional[Dict[str, Any]] = None
 
 
 class Project(BaseModel):
     """Project data model."""
     id: str
     name: str
-    status: str
-    brief: Optional[Dict[str, Any]] = None
-    survey: Optional[Dict[str, Any]] = None
+    description: Optional[str] = None
+    brief_text: Optional[str] = None
+    brief_data: Optional[Dict[str, Any]] = None
+    survey_json: Optional[Dict[str, Any]] = None
+    validation_log: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
     

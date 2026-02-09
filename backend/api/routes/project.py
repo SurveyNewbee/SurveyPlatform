@@ -105,10 +105,11 @@ async def create_project(request: CreateProjectRequest) -> Dict[str, Any]:
     project = {
         "id": project_id,
         "name": request.name,
-        "status": "draft_brief",
-        "brief": None,
-        "survey": None,
-        "raw_brief": request.raw_brief,
+        "description": request.description,
+        "brief_text": request.brief_text,
+        "brief_data": request.brief_data,
+        "survey_json": None,
+        "validation_log": None,
         "created_at": now.isoformat(),
         "updated_at": now.isoformat()
     }
@@ -126,23 +127,23 @@ async def update_project(project_id: str, request: UpdateProjectRequest) -> Dict
     """
     Update an existing project.
     
-    Can update name, brief, survey, or status.
+    Can update name, description, brief_data, survey_json, or validation_log.
     """
     project = load_project(project_id)
     
     # Update fields
     if request.name is not None:
         project["name"] = request.name
-    if request.brief is not None:
-        project["brief"] = request.brief
-        if project["status"] == "draft_brief":
-            project["status"] = "draft_survey"  # Brief is now filled
-    if request.survey is not None:
-        project["survey"] = request.survey
-        if project["status"] == "draft_brief":
-            project["status"] = "draft_survey"  # Survey generated
-    if request.status is not None:
-        project["status"] = request.status
+    if request.description is not None:
+        project["description"] = request.description
+    if request.brief_text is not None:
+        project["brief_text"] = request.brief_text
+    if request.brief_data is not None:
+        project["brief_data"] = request.brief_data
+    if request.survey_json is not None:
+        project["survey_json"] = request.survey_json
+    if request.validation_log is not None:
+        project["validation_log"] = request.validation_log
     
     project["updated_at"] = datetime.utcnow().isoformat()
     
