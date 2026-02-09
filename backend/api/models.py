@@ -49,9 +49,8 @@ class ExtractBriefResponse(BaseModel):
 
 class GenerateSurveyRequest(BaseModel):
     """Request to generate survey from brief."""
-    project_id: str
-    brief: Dict[str, Any]
-    loi_tier: Literal["quick", "standard", "deep"] = "standard"
+    brief_data: Dict[str, Any]
+    selected_skills: List[str]
 
 
 class GenerateSurveyResponse(BaseModel):

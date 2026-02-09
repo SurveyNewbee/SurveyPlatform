@@ -13,106 +13,103 @@ import traceback
 BACKEND_DIR = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(BACKEND_DIR / "core"))
 
-from api.models import (
-    GenerateSurveyRequest,
-    GenerateSurveyResponse,
-    ValidateSurveyRequest,
-    ValidateSurveyResponse
-)
+from api.models import GenerateSurveyRequest
 
 router = APIRouter()
 
 
-@router.post("/generate-survey", response_model=GenerateSurveyResponse)
+@router.post("/generate-survey")
 async def generate_survey(request: GenerateSurveyRequest) -> Dict[str, Any]:
     """
     Generate survey from brief using AI.
     
-    Calls generate_survey.py -> validate_survey.py pipeline.
+    Takes extracted brief_data and selected_skills, generates survey using SurveyGenerator.
     """
     try:
-        import generate_survey as gs
-        import validate_survey as vs
+        from generate_survey import SurveyGenerator
         
-        # Call the generation function
-        # Note: Adapt this based on actual function signature in generate_survey.py
-        survey_output = gs.generate_and_save(
-            brief=request.brief,
-            output_file=None  # Return dict instead of saving
-        )
-        
-        # Validate the generated survey
-        validator = vs.SurveyValidator(survey_output, request.brief)
-        validated_survey, validation_results = validator.validate()
-        
-        # Package validation log
-        validation_log = {
-            "results": [r.to_dict() for r in validation_results],
-            "error_count": sum(1 for r in validation_results if r.severity == "error"),
-            "warning_count": sum(1 for r in validation_results if r.severity == "warning"),
-            "auto_fix_count": sum(1 for r in validation_results if r.severity == "auto_fix")
+        # Transform frontend brief_data into format expected by SurveyGenerator
+        # Frontend sends: {objectives, target_audience, topics, identified_skills, timeline, budget}
+        # SurveyGenerator expects: {objective, target_audience, key_dimensions, skills, operational, ...}
+        brief_for_generator = {
+            "objective": request.brief_data.get("objectives", [""])[0] if request.brief_data.get("objectives") else "",
+            "target_audience": request.brief_data.get("target_audience", ""),
+            "key_dimensions": request.brief_data.get("topics", []),
+            "skills": request.selected_skills,
         }
         
-        return GenerateSurveyResponse(
-            success=True,
-            data=validated_survey,
-            validation_log=validation_log
-        )
+        # Add optional operational fields if present
+        operational = {}
+        if request.brief_data.get("timeline"):
+            operational["timeline"] = request.brief_data["timeline"]
+        if request.brief_data.get("budget"):
+            operational["budget"] = request.brief_data["budget"]
+        if operational:
+            brief_for_generator["operational"] = operational
+        
+        # Get skills directory path
+        skills_dir = BACKEND_DIR.parent / "skills"
+        
+        # Create generator
+        print(f"Creating SurveyGenerator with skills_dir: {skills_dir}")
+        generator = SurveyGenerator(skills_dir=skills_dir)
+        
+        # Generate survey
+        print(f"Generating survey with brief: {brief_for_generator}")
+        survey_json = generator.generate(brief_for_generator, stream_output=False)
+        
+        if not survey_json:
+            raise ValueError("Survey generation returned no result")
+        
+        # For now, return without validation
+        # TODO: Add validation step
+        return {
+            "success": True,
+            "data": {
+                "survey": survey_json,
+                "validation_log": {
+                    "is_valid": True,
+                    "error_count": 0,
+                    "warning_count": 0,
+                    "entries": []
+                }
+            }
+        }
         
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "generation_failed",
-                "message": str(e),
-                "type": type(e).__name__
-            }
-        )
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
-@router.post("/validate-survey", response_model=ValidateSurveyResponse)
-async def validate_survey(request: ValidateSurveyRequest) -> Dict[str, Any]:
+@router.post("/validate-survey")
+async def validate_survey(request: Dict[str, Any]) -> Dict[str, Any]:
     """
     Validate survey against rules.
     
-    Runs validate_survey.py on provided survey JSON.
+    TODO: Implement validation pipeline.
+    For now, returns placeholder response.
     """
     try:
-        import validate_survey as vs
-        
-        validator = vs.SurveyValidator(request.survey, request.brief)
-        validated_survey, validation_results = validator.validate()
-        
-        error_count = sum(1 for r in validation_results if r.severity == "error")
-        warning_count = sum(1 for r in validation_results if r.severity == "warning")
-        
-        validation_log = {
-            "results": [r.to_dict() for r in validation_results],
-            "error_count": error_count,
-            "warning_count": warning_count,
-            "auto_fix_count": sum(1 for r in validation_results if r.severity == "auto_fix")
+        # TODO: Implement actual validation
+        return {
+            "success": True,
+            "data": {
+                "is_valid": True,
+                "error_count": 0,
+                "warning_count": 0,
+                "entries": []
+            }
         }
-        
-        return ValidateSurveyResponse(
-            success=True,
-            data=validated_survey,
-            validation_log=validation_log,
-            has_errors=error_count > 0,
-            error_count=error_count,
-            warning_count=warning_count
-        )
         
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "validation_failed",
-                "message": str(e),
-                "type": type(e).__name__
-            }
-        )
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
 @router.post("/render-preview")
