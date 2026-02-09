@@ -1,115 +1,50 @@
-# Frontend - Survey Platform UI
+# React + TypeScript + Vite
 
-React application for the AI-powered survey platform.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Setup (Coming Soon)
+Currently, two official plugins are available:
 
-```bash
-npm create vite@latest . -- --template react-ts
-npm install
-npm install react-router-dom
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+
+- Configure the top-level `parserOptions` property like this:
+
+```js
+export default tseslint.config({
+  languageOptions: {
+    // other options...
+    parserOptions: {
+      project: ['./tsconfig.node.json', './tsconfig.app.json'],
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+})
 ```
 
-## Planned Tech Stack
+- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
+- Optionally add `...tseslint.configs.stylisticTypeChecked`
+- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
 
-- **Framework:** React 18 + TypeScript
-- **Routing:** React Router v6
-- **Styling:** TailwindCSS
-- **Charts:** Recharts (for reporting phase)
-- **Forms:** React Hook Form
-- **State:** React Context (simple for MVP)
-- **API Client:** Fetch API with custom wrapper
+```js
+// eslint.config.js
+import react from 'eslint-plugin-react'
 
-## Project Structure
-
+export default tseslint.config({
+  // Set the react version
+  settings: { react: { version: '18.3' } },
+  plugins: {
+    // Add the react plugin
+    react,
+  },
+  rules: {
+    // other rules...
+    // Enable its recommended rules
+    ...react.configs.recommended.rules,
+    ...react.configs['jsx-runtime'].rules,
+  },
+})
 ```
-frontend/
-├── src/
-│   ├── pages/
-│   │   ├── Dashboard.tsx
-│   │   ├── Setup.tsx
-│   │   ├── Editor.tsx
-│   │   ├── Preview.tsx
-│   │   ├── Launch.tsx
-│   │   ├── Status.tsx
-│   │   └── Report.tsx
-│   ├── components/
-│   │   ├── layout/
-│   │   │   ├── Header.tsx
-│   │   │   ├── Breadcrumb.tsx
-│   │   │   └── Navigation.tsx
-│   │   ├── survey/
-│   │   │   ├── QuestionCard.tsx
-│   │   │   ├── SectionNav.tsx
-│   │   │   └── LOISlider.tsx
-│   │   └── common/
-│   │       ├── Button.tsx
-│   │       ├── Input.tsx
-│   │       └── Modal.tsx
-│   ├── api/
-│   │   └── client.ts
-│   ├── types/
-│   │   └── survey.ts
-│   ├── App.tsx
-│   └── main.tsx
-└── package.json
-```
-
-## Development Phases
-
-### Phase 0: Foundation (Week 1-2)
-- [ ] Initialize Vite project
-- [ ] Set up TailwindCSS
-- [ ] Create routing structure
-- [ ] Build global header
-- [ ] Build Dashboard page
-
-### Phase 1a: Setup Page (Week 2-3)
-- [ ] Brief input textarea
-- [ ] File upload
-- [ ] Extraction progress
-- [ ] Structured form fields
-- [ ] Wire to backend API
-
-### Phase 2: LOI Slider (Week 4-5)
-- [ ] Slider component
-- [ ] Question visibility logic
-- [ ] Pin/exclude controls
-- [ ] Focus note display
-
-### Phase 3: Editor (Week 5-6)
-- [ ] Question card component
-- [ ] Inline editing
-- [ ] Add/delete/reorder
-- [ ] Skip logic editor
-
-### Phase 4: Preview (Week 7-9)
-- [ ] Respondent view rendering
-- [ ] Comment system
-- [ ] AI edit flow
-- [ ] Diff view
-
-### Phase 5: Reporting (Week 9-12)
-- [ ] Chart components
-- [ ] Cross-tabulation
-- [ ] Export functions
-
-### Phase 6: Launch (Week 12-13)
-- [ ] Launch wizard
-- [ ] Status page
-
-## Running Development Server
-
-```bash
-npm run dev
-```
-
-## Next Steps
-
-1. Initialize Vite project
-2. Install dependencies
-3. Create basic routing
-4. Build header component
-5. Build Dashboard skeleton

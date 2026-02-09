@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Any, Literal
 from pathlib import Path
 
 from pydantic import BaseModel, field_validator
-from langchain.chat_models import init_chat_model
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.runnables import RunnableLambda
@@ -376,7 +376,7 @@ class BriefExtractor:
         if llm is not None:
             self.llm = llm
         else:
-            self.llm = init_chat_model(model=model_name, temperature=temperature)
+            self.llm = ChatOpenAI(model=model_name, temperature=temperature)
 
         self.parser = JsonOutputParser(pydantic_object=BriefExtraction)
         
