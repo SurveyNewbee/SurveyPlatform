@@ -35,7 +35,7 @@ if os.environ.get("LANGCHAIN_TRACING_V2") == "true" and not os.environ.get("LANG
     print("⚠ Warning: LANGCHAIN_TRACING_V2 is enabled but LANGCHAIN_API_KEY is not set. Tracing will not work.")
 
 
-def load_skills_metadata(skills_dir: Path = Path("skills")) -> List[Dict[str, str]]:
+def load_skills_metadata(skills_dir: Path = None) -> List[Dict[str, str]]:
     """
     Load skill metadata from all SKILL.md files in skills directory.
     
@@ -43,11 +43,16 @@ def load_skills_metadata(skills_dir: Path = Path("skills")) -> List[Dict[str, st
     containing name and description fields.
     
     Args:
-        skills_dir: Path to skills directory (default: ./skills)
+        skills_dir: Path to skills directory (default: ../skills relative to backend)
     
     Returns:
         List of {name, description, path} dicts for skill discovery
     """
+    if skills_dir is None:
+        # Default to skills directory at same level as backend
+        backend_dir = Path(__file__).parent.parent
+        skills_dir = backend_dir.parent / "skills"
+    
     skills = []
     
     if not skills_dir.exists():
@@ -389,7 +394,10 @@ class BriefExtractor:
 
     def _load_prompt(self) -> ChatPromptTemplate:
         """Load prompt template and add parser format instructions + skills list."""
-        prompt_path = Path("prompt_template.txt")
+        # Path relative to backend directory
+        backend_dir = Path(__file__).parent.parent
+        prompt_path = backend_dir / "prompt_template.txt"
+        
         if not prompt_path.exists():
             raise FileNotFoundError(f"Prompt template not found: {prompt_path}")
 

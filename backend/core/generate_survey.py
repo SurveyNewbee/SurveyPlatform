@@ -326,7 +326,10 @@ class SurveyGenerator:
         Uses LangChain's partial() method with callable to defer skill loading
         until generation time, ensuring model-agnostic compatibility.
         """
-        prompt_path = Path("survey_prompt_template.txt")
+        # Path relative to backend directory
+        backend_dir = Path(__file__).parent.parent
+        prompt_path = backend_dir / "survey_prompt_template.txt"
+        
         if not prompt_path.exists():
             raise FileNotFoundError(f"Prompt template not found: {prompt_path}")
 
