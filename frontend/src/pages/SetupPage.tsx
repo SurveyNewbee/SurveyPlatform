@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { extractBrief, getSkills, createProject } from '../api/client';
+import { extractBrief, extractBriefStream, getSkills, createProject } from '../api/client';
 import type { ExtractedBrief, Skill } from '../types';
+import StreamingModal from '../components/StreamingModal';
 
 export default function SetupPage() {
   const navigate = useNavigate();
@@ -11,6 +12,8 @@ export default function SetupPage() {
   const [briefText, setBriefText] = useState('');
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
+  const [streamingContent, setStreamingContent] = useState('');
+  const [showStreamingModal, setShowStreamingModal] = useState(false);
   
   // Step 2: Extracted brief data
   const [extractedBrief, setExtractedBrief] = useState<ExtractedBrief | null>(null);
@@ -46,18 +49,37 @@ export default function SetupPage() {
 
     setExtracting(true);
     setExtractError(null);
+    setStreamingContent('');
+    setShowStreamingModal(true);
 
-    const response = await extractBrief(briefText);
-    
-    if (response.success && response.data) {
-      setExtractedBrief(response.data);
-      // Pre-select identified skills
-      if (response.data.identified_skills) {
-        setSelectedSkills(response.data.identified_skills);
+    try {
+      let finalResult = null;
+      
+      // Stream the response for visual feedback and capture final result
+      for await (const message of extractBriefStream(briefText)) {
+        if (message.type === 'chunk') {
+          setStreamingContent(prev => prev + message.data + '\n');
+        } else if (message.type === 'final') {
+          finalResult = message.data;
+        }
       }
-      setStep('review');
-    } else {
-      setExtractError(response.error || 'Failed to extract brief');
+
+      // Use the final result from streaming (no second API call needed)
+      if (finalResult) {
+        setExtractedBrief(finalResult);
+        // Pre-select identified skills if present
+        if (finalResult.identified_skills) {
+          setSelectedSkills(finalResult.identified_skills);
+        }
+        setShowStreamingModal(false);
+        setStep('review');
+      } else {
+        setExtractError('No final result received from stream');
+        setShowStreamingModal(false);
+      }
+    } catch (error) {
+      setExtractError(error instanceof Error ? error.message : 'Streaming failed');
+      setShowStreamingModal(false);
     }
     
     setExtracting(false);
@@ -97,11 +119,17 @@ export default function SetupPage() {
 
   if (step === 'brief') {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">New Project Setup</h2>
-        <p className="text-gray-600 mb-8">
-          Enter your research brief and we'll help you design the perfect survey
-        </p>
+      <>
+        <StreamingModal
+          isOpen={showStreamingModal}
+          title="Extracting Brief & Generating Blueprint"
+          content={streamingContent}
+        />
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <h2 className="text-3xl font-bold text-gray-800 mb-2">New Project Setup</h2>
+          <p className="text-gray-600 mb-8">
+            Enter your research brief and we'll help you design the perfect survey
+          </p>
 
         <div className="bg-white rounded-lg shadow-md p-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -149,6 +177,7 @@ export default function SetupPage() {
           </ul>
         </div>
       </div>
+      </>
     );
   }
 

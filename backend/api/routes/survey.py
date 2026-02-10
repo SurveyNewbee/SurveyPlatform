@@ -6,6 +6,7 @@ import sys
 import json
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from typing import Dict, Any
 import traceback
 
@@ -16,6 +17,36 @@ sys.path.insert(0, str(BACKEND_DIR / "core"))
 from api.models import GenerateSurveyRequest
 
 router = APIRouter()
+
+
+@router.post("/generate-survey/stream")
+async def generate_survey_stream(request: GenerateSurveyRequest):
+    """
+    Generate survey from approved brief with streaming.
+    Returns Server-Sent Events (SSE) stream of LLM tokens.
+    """
+    try:
+        from generate_survey import SurveyGenerator
+        
+        brief_for_generator = request.brief_data
+        generator = SurveyGenerator()
+        
+        return StreamingResponse(
+            generator.generate_async_stream(brief_for_generator),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
+        
+    except Exception as e:
+        traceback.print_exc()
+        # Return error as SSE
+        async def error_stream():
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        return StreamingResponse(error_stream(), media_type="text/event-stream")
 
 
 @router.post("/generate-survey")

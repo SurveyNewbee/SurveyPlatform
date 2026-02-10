@@ -345,6 +345,75 @@ class BriefExtractor:
             format_instructions=self.parser.get_format_instructions()
         )
 
+    async def extract_async_stream(self, brief_text: str):
+        """
+        Async generator for streaming extraction tokens to frontend.
+        Accumulates chunks and sends final structured result.
+        Yields complete lines of content for SSE.
+        """
+        # Build streaming chain without parser (get raw LLM output)
+        stream_chain = self.prompt | self.llm
+        
+        display_buffer = ""
+        accumulated_content = ""
+        
+        try:
+            # Stream tokens and accumulate full content
+            async for chunk in stream_chain.astream({"brief": brief_text}):
+                if hasattr(chunk, 'content'):
+                    accumulated_content += chunk.content
+                    display_buffer += chunk.content
+                    
+                    # Yield complete lines for display
+                    while '\n' in display_buffer:
+                        line, display_buffer = display_buffer.split('\n', 1)
+                        yield f"data: {json.dumps({'content': line})}\n\n"
+            
+            # Yield any remaining buffer
+            if display_buffer:
+                yield f"data: {json.dumps({'content': display_buffer})}\n\n"
+            
+            # Parse accumulated content into structured format
+            cleaned_content = strip_task_plan(accumulated_content)
+            result = self.parser.parse(cleaned_content)
+            
+            # Transform to frontend format (matching non-streaming endpoint)
+            extracted_brief = {
+                "objectives": [result.get("objective", "")],  # Convert single to array
+                "target_audience": result.get("target_audience", ""),
+                "topics": result.get("key_dimensions", []),
+                "survey_blueprint": result.get("survey_blueprint"),
+            }
+            
+            # Add optional fields if present
+            if result.get("total_sample_size"):
+                extracted_brief["total_sample_size"] = result["total_sample_size"]
+            if result.get("quotas"):
+                extracted_brief["quotas"] = result["quotas"]
+            if result.get("market_context"):
+                extracted_brief["market_context"] = result["market_context"]
+            if result.get("study_type"):
+                extracted_brief["study_type"] = result["study_type"]
+            if result.get("primary_methodology"):
+                extracted_brief["primary_methodology"] = result["primary_methodology"]
+            if result.get("secondary_objectives"):
+                extracted_brief["secondary_objectives"] = result["secondary_objectives"]
+            if result.get("operational"):
+                extracted_brief["operational"] = result["operational"]
+            if result.get("study_design"):
+                extracted_brief["study_design"] = result["study_design"]
+            if result.get("measurement_guidance"):
+                extracted_brief["measurement_guidance"] = result["measurement_guidance"]
+            if result.get("problem_frame"):
+                extracted_brief["problem_frame"] = result["problem_frame"]
+            
+            # Send final structured result (ensure proper JSON serialization)
+            final_data = json.dumps({'final': extracted_brief, 'done': True}, default=str)
+            yield f"data: {final_data}\n\n"
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
     def extract(self, brief_text: str, stream_output: bool = False) -> Optional[dict]:
         """
         Main extraction method.

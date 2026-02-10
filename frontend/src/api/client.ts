@@ -35,6 +35,59 @@ export async function extractBrief(briefText: string) {
   });
 }
 
+// Brief Extraction with Streaming - returns both content and final result
+export async function* extractBriefStream(briefText: string): AsyncGenerator<{type: 'chunk' | 'final', data: any}> {
+  const response = await fetch(`${API_BASE_URL}/api/extract-brief/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ brief_text: briefText }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+
+  if (!reader) {
+    throw new Error('Failed to get response reader');
+  }
+
+  let buffer = '';
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = JSON.parse(line.slice(6));
+          if (data.content) {
+            yield { type: 'chunk', data: data.content };
+          } else if (data.final) {
+            yield { type: 'final', data: data.final };
+            return;
+          } else if (data.error) {
+            throw new Error(data.error);
+          } else if (data.done) {
+            return;
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 // Skills
 export async function getSkills() {
   return fetchAPI<Skill[]>('/api/skills');
@@ -48,6 +101,59 @@ export async function generateSurvey(briefData: any) {
       brief_data: briefData,
     }),
   });
+}
+
+// Survey Generation with Streaming - returns both content and final result
+export async function* generateSurveyStream(briefData: any): AsyncGenerator<{type: 'chunk' | 'final', data: any}> {
+  const response = await fetch(`${API_BASE_URL}/api/generate-survey/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ brief_data: briefData }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+
+  if (!reader) {
+    throw new Error('Failed to get response reader');
+  }
+
+  let buffer = '';
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = JSON.parse(line.slice(6));
+          if (data.content) {
+            yield { type: 'chunk', data: data.content };
+          } else if (data.final) {
+            yield { type: 'final', data: data.final };
+            return;
+          } else if (data.error) {
+            throw new Error(data.error);
+          } else if (data.done) {
+            return;
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 // Survey Validation

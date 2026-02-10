@@ -5,8 +5,10 @@ Brief extraction endpoints.
 import sys
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from typing import Dict, Any
 import traceback
+import json
 
 # Add core to path
 BACKEND_DIR = Path(__file__).parent.parent.parent
@@ -19,6 +21,37 @@ from extract_brief import BriefExtractor
 
 
 router = APIRouter()
+
+
+@router.post("/extract-brief/stream")
+async def extract_brief_stream(request: Dict[str, Any]):
+    """
+    Extract structured fields from raw research brief text with streaming.
+    Returns Server-Sent Events (SSE) stream of LLM tokens.
+    """
+    try:
+        brief_text = request.get("brief_text", "")
+        if not brief_text or len(brief_text) < 50:
+            raise ValueError("Brief text must be at least 50 characters")
+        
+        extractor = BriefExtractor()
+        
+        return StreamingResponse(
+            extractor.extract_async_stream(brief_text),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
+        
+    except Exception as e:
+        traceback.print_exc()
+        # Return error as SSE
+        async def error_stream():
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        return StreamingResponse(error_stream(), media_type="text/event-stream")
 
 
 @router.post("/extract-brief")

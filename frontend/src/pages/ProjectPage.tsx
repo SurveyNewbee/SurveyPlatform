@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProject, generateSurvey, updateProject, updateLOI, pinQuestion, excludeQuestion, resetQuestionOverride } from '../api/client';
+import { getProject, generateSurvey, generateSurveyStream, updateProject, updateLOI, pinQuestion, excludeQuestion, resetQuestionOverride } from '../api/client';
 import type { Project, ValidationLogEntry } from '../types';
 import LOISlider from '../components/LOISlider';
 import QuestionCard from '../components/QuestionCard';
+import StreamingModal from '../components/StreamingModal';
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -15,6 +16,8 @@ export default function ProjectPage() {
   
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [streamingContent, setStreamingContent] = useState('');
+  const [showStreamingModal, setShowStreamingModal] = useState(false);
   
   const [selectedTab, setSelectedTab] = useState<'overview' | 'survey' | 'validation'>('overview');
   const [loiCollapsed, setLoiCollapsed] = useState(false);
@@ -53,27 +56,48 @@ export default function ProjectPage() {
 
     setGenerating(true);
     setGenerateError(null);
+    setStreamingContent('');
+    setShowStreamingModal(true);
 
-    const response = await generateSurvey(project.brief_data);
-
-    console.log('Generate survey response:', response);
-
-    if (response.success && response.data) {
-      // Update project with survey and validation log
-      const updateResponse = await updateProject(projectId, {
-        survey_json: response.data.survey,
-        validation_log: response.data.validation_log,
-      });
-
-      if (updateResponse.success) {
-        await loadProject();
-        setSelectedTab('survey');
-      } else {
-        console.error('Failed to update project:', updateResponse);
-        setGenerateError(`Survey generated but failed to save: ${updateResponse.error || 'Unknown error'}`);
+    try {
+      let finalResult = null;
+      
+      // Stream the response for visual feedback and capture final result
+      for await (const message of generateSurveyStream(project.brief_data)) {
+        if (message.type === 'chunk') {
+          setStreamingContent(prev => prev + message.data + '\n');
+        } else if (message.type === 'final') {
+          finalResult = message.data;
+        }
       }
-    } else {
-      setGenerateError(response.error || 'Failed to generate survey');
+
+      // Use the final result from streaming (no second API call needed)
+      if (finalResult) {
+        // Validate the survey structure
+        const validationLog = finalResult.validation_log || { is_valid: true, errors: [], warnings: [] };
+        
+        // Update project with survey and validation log
+        const updateResponse = await updateProject(projectId, {
+          survey_json: finalResult,
+          validation_log: validationLog,
+        });
+
+        if (updateResponse.success) {
+          await loadProject();
+          setShowStreamingModal(false);
+          setSelectedTab('survey');
+        } else {
+          console.error('Failed to update project:', updateResponse);
+          setGenerateError(`Survey generated but failed to save: ${updateResponse.error || 'Unknown error'}`);
+          setShowStreamingModal(false);
+        }
+      } else {
+        setGenerateError('No final result received from stream');
+        setShowStreamingModal(false);
+      }
+    } catch (error) {
+      setGenerateError(error instanceof Error ? error.message : 'Streaming failed');
+      setShowStreamingModal(false);
     }
 
     setGenerating(false);
@@ -176,7 +200,13 @@ export default function ProjectPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <>
+      <StreamingModal
+        isOpen={showStreamingModal}
+        title="Generating Survey from Blueprint"
+        content={streamingContent}
+      />
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Header */}
       <div className="mb-6">
         <button
@@ -388,15 +418,27 @@ export default function ProjectPage() {
                       </div>
                     )}
                     
-                    {project.survey_json.SAMPLE_REQUIREMENTS.soft_quotas && (
+                    {(project.survey_json.SAMPLE_REQUIREMENTS.hard_quotas || project.survey_json.SAMPLE_REQUIREMENTS.soft_quotas) && (
                       <div className="mt-3">
                         <p className="font-medium mb-1">Quotas:</p>
-                        {Object.entries(project.survey_json.SAMPLE_REQUIREMENTS.soft_quotas).map(([key, value]: [string, any]) => (
-                          <div key={key} className="ml-4 text-gray-700">
-                            <p className="font-medium text-xs uppercase text-gray-500">{key}:</p>
+                        
+                        {project.survey_json.SAMPLE_REQUIREMENTS.hard_quotas && Object.entries(project.survey_json.SAMPLE_REQUIREMENTS.hard_quotas).map(([key, value]: [string, any]) => (
+                          <div key={`hard-${key}`} className="ml-4 text-gray-700">
+                            <p className="font-medium text-xs uppercase text-gray-500">{key} (Hard Quota):</p>
                             <ul className="ml-4 space-y-1">
                               {typeof value === 'object' && Object.entries(value).map(([k, v]: [string, any]) => (
-                                <li key={k} className="text-sm">• {k}: n={v}</li>
+                                <li key={k} className="text-sm">• {k}: {v === null || v === undefined ? 'Proportional' : `n=${v}`}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                        
+                        {project.survey_json.SAMPLE_REQUIREMENTS.soft_quotas && Object.entries(project.survey_json.SAMPLE_REQUIREMENTS.soft_quotas).map(([key, value]: [string, any]) => (
+                          <div key={`soft-${key}`} className="ml-4 text-gray-700">
+                            <p className="font-medium text-xs uppercase text-gray-500">{key} (Soft Quota):</p>
+                            <ul className="ml-4 space-y-1">
+                              {typeof value === 'object' && Object.entries(value).map(([k, v]: [string, any]) => (
+                                <li key={k} className="text-sm">• {k}: {v === null || v === undefined ? 'Natural fall' : `n=${v}`}</li>
                               ))}
                             </ul>
                           </div>
@@ -576,5 +618,6 @@ export default function ProjectPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

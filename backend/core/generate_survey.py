@@ -299,6 +299,56 @@ class SurveyGenerator:
             format_instructions=self.parser.get_format_instructions()
         )
 
+    async def generate_async_stream(self, brief_data: Dict[str, Any]):
+        """
+        Async generator for streaming generation tokens to frontend.
+        Accumulates chunks and sends final structured result.
+        Yields complete lines of content for SSE.
+        """
+        template_vars = self._prepare_vars(brief_data)
+        chain = self.prompt | self.llm
+        
+        display_buffer = ""
+        accumulated_content = ""
+        
+        try:
+            # Stream tokens and accumulate full content
+            async for chunk in chain.astream(template_vars):
+                if hasattr(chunk, 'content'):
+                    accumulated_content += chunk.content
+                    display_buffer += chunk.content
+                    
+                    # Yield complete lines for display
+                    while '\n' in display_buffer:
+                        line, display_buffer = display_buffer.split('\n', 1)
+                        yield f"data: {json.dumps({'content': line})}\n\n"
+            
+            # Yield any remaining buffer
+            if display_buffer:
+                yield f"data: {json.dumps({'content': display_buffer})}\n\n"
+            
+            # Parse accumulated content into structured format
+            cleaned_content = strip_task_plan(accumulated_content)
+            survey_json = self.parser.parse(cleaned_content)
+            
+            # Add LOI configuration with default slider position (matching non-streaming)
+            try:
+                from loi_calculator import LOICalculator
+                loi_calc = LOICalculator(survey_json)
+                survey_json = loi_calc.add_loi_config(initial_position=50)
+            except Exception as loi_error:
+                # Log error but continue with survey
+                print(f"Warning: Failed to add LOI config: {loi_error}")
+            
+            # Send final structured result (ensure proper JSON serialization)
+            final_data = json.dumps({'final': survey_json, 'done': True}, default=str)
+            yield f"data: {final_data}\n\n"
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
     def generate(self, brief_data: Dict[str, Any], stream_output: bool = False) -> Optional[Dict[str, Any]]:
         """
         Main generation method with automatic fallback.
