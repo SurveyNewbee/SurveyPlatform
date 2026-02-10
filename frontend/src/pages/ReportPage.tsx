@@ -151,6 +151,12 @@ export default function ReportPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-7xl mx-auto">
+          <button
+            onClick={() => navigate(`/project/${projectId}`)}
+            className="mb-3 text-sm text-gray-600 hover:text-gray-800 flex items-center gap-1 transition-colors"
+          >
+            ← Back to Project
+          </button>
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-gray-800">{reportData.title}</h1>
