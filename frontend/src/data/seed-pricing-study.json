@@ -1,0 +1,434 @@
+{
+  "survey_id": "pricing-study-001",
+  "title": "Product X Pricing Study",
+  "field_dates": {
+    "start": "2026-01-15",
+    "end": "2026-01-17"
+  },
+  "sample_size": 403,
+  "completion_rate": 0.87,
+  "actual_loi_minutes": 9.2,
+  "executive_summary": [
+    "Optimal price point is $29 based on Van Westendorp intersection analysis",
+    "Price sensitivity is highest among 25-34 age group (acceptable range: $24-$32)",
+    "72% find concept appealing at the $29 price point (top-2-box)",
+    "Key barrier to purchase: perceived quality gap vs. incumbent brand (mentioned by 41%)",
+    "Strong purchase intent (68% definitely/probably would buy) suggests concept has legs despite competitive market"
+  ],
+  "demographics": {
+    "age": {
+      "18-24": 0.15,
+      "25-34": 0.28,
+      "35-44": 0.23,
+      "45-54": 0.19,
+      "55+": 0.15
+    },
+    "gender": {
+      "Male": 0.48,
+      "Female": 0.50,
+      "Other": 0.02
+    },
+    "income": {
+      "Under $35k": 0.12,
+      "$35k-$50k": 0.18,
+      "$50k-$75k": 0.28,
+      "$75k-$100k": 0.23,
+      "Over $100k": 0.19
+    }
+  },
+  "questions": [
+    {
+      "question_id": "SCREEN_1",
+      "question_text": "Do you currently use skincare products?",
+      "question_type": "single_choice",
+      "sample_size": 403,
+      "results": {
+        "options": [
+          {
+            "label": "Yes, regularly",
+            "count": 312,
+            "percentage": 0.77,
+            "breaks": {
+              "age": {
+                "18-24": 0.82,
+                "25-34": 0.85,
+                "35-44": 0.78,
+                "45-54": 0.71,
+                "55+": 0.67
+              },
+              "gender": {
+                "Male": 0.63,
+                "Female": 0.91,
+                "Other": 0.88
+              }
+            }
+          },
+          {
+            "label": "Yes, occasionally",
+            "count": 72,
+            "percentage": 0.18,
+            "breaks": {
+              "age": {
+                "18-24": 0.13,
+                "25-34": 0.12,
+                "35-44": 0.16,
+                "45-54": 0.21,
+                "55+": 0.23
+              },
+              "gender": {
+                "Male": 0.28,
+                "Female": 0.07,
+                "Other": 0.12
+              }
+            }
+          },
+          {
+            "label": "No",
+            "count": 19,
+            "percentage": 0.05,
+            "breaks": {
+              "age": {
+                "18-24": 0.05,
+                "25-34": 0.03,
+                "35-44": 0.06,
+                "45-54": 0.08,
+                "55+": 0.10
+              },
+              "gender": {
+                "Male": 0.09,
+                "Female": 0.02,
+                "Other": 0.00
+              }
+            }
+          }
+        ]
+      },
+      "ai_insight": "Strong category usage (95% use skincare at least occasionally). Female skew as expected. Younger cohorts show highest regular usage."
+    },
+    {
+      "question_id": "CORE_1",
+      "question_text": "After reading the concept description, how appealing is Product X to you?",
+      "question_type": "rating_scale",
+      "sample_size": 403,
+      "results": {
+        "options": [
+          {
+            "label": "Extremely appealing",
+            "count": 137,
+            "percentage": 0.34,
+            "breaks": {
+              "age": {
+                "18-24": 0.42,
+                "25-34": 0.39,
+                "35-44": 0.32,
+                "45-54": 0.28,
+                "55+": 0.25
+              },
+              "gender": {
+                "Male": 0.29,
+                "Female": 0.39,
+                "Other": 0.38
+              }
+            }
+          },
+          {
+            "label": "Very appealing",
+            "count": 153,
+            "percentage": 0.38,
+            "breaks": {
+              "age": {
+                "18-24": 0.35,
+                "25-34": 0.37,
+                "35-44": 0.39,
+                "45-54": 0.41,
+                "55+": 0.37
+              },
+              "gender": {
+                "Male": 0.36,
+                "Female": 0.40,
+                "Other": 0.38
+              }
+            }
+          },
+          {
+            "label": "Somewhat appealing",
+            "count": 73,
+            "percentage": 0.18,
+            "breaks": {
+              "age": {
+                "18-24": 0.15,
+                "25-34": 0.16,
+                "35-44": 0.18,
+                "45-54": 0.19,
+                "55+": 0.23
+              },
+              "gender": {
+                "Male": 0.21,
+                "Female": 0.15,
+                "Other": 0.13
+              }
+            }
+          },
+          {
+            "label": "Not very appealing",
+            "count": 28,
+            "percentage": 0.07,
+            "breaks": {
+              "age": {
+                "18-24": 0.05,
+                "25-34": 0.05,
+                "35-44": 0.07,
+                "45-54": 0.08,
+                "55+": 0.10
+              },
+              "gender": {
+                "Male": 0.10,
+                "Female": 0.04,
+                "Other": 0.13
+              }
+            }
+          },
+          {
+            "label": "Not at all appealing",
+            "count": 12,
+            "percentage": 0.03,
+            "breaks": {
+              "age": {
+                "18-24": 0.03,
+                "25-34": 0.03,
+                "35-44": 0.04,
+                "45-54": 0.04,
+                "55+": 0.05
+              },
+              "gender": {
+                "Male": 0.04,
+                "Female": 0.02,
+                "Other": 0.00
+              }
+            }
+          }
+        ],
+        "mean": 3.97,
+        "median": 4
+      },
+      "significance_tests": [
+        {
+          "break_variable": "gender",
+          "groups_compared": ["Male", "Female"],
+          "p_value": 0.02,
+          "significant": true
+        },
+        {
+          "break_variable": "age",
+          "groups_compared": ["18-24", "55+"],
+          "p_value": 0.04,
+          "significant": true
+        }
+      ],
+      "ai_insight": "Concept appeal is strong (72% top-2-box). Significantly higher among women and younger age groups (p<.05). Mean score of 3.97 indicates solid positive reaction."
+    },
+    {
+      "question_id": "CORE_2",
+      "question_text": "How likely would you be to purchase Product X?",
+      "question_type": "rating_scale",
+      "sample_size": 403,
+      "results": {
+        "options": [
+          {
+            "label": "Definitely would buy",
+            "count": 105,
+            "percentage": 0.26,
+            "breaks": {
+              "age": {
+                "18-24": 0.33,
+                "25-34": 0.31,
+                "35-44": 0.26,
+                "45-54": 0.21,
+                "55+": 0.18
+              },
+              "gender": {
+                "Male": 0.22,
+                "Female": 0.30,
+                "Other": 0.25
+              }
+            }
+          },
+          {
+            "label": "Probably would buy",
+            "count": 169,
+            "percentage": 0.42,
+            "breaks": {
+              "age": {
+                "18-24": 0.40,
+                "25-34": 0.42,
+                "35-44": 0.43,
+                "45-54": 0.43,
+                "55+": 0.40
+              },
+              "gender": {
+                "Male": 0.40,
+                "Female": 0.43,
+                "Other": 0.50
+              }
+            }
+          },
+          {
+            "label": "Might or might not buy",
+            "count": 85,
+            "percentage": 0.21,
+            "breaks": {
+              "age": {
+                "18-24": 0.18,
+                "25-34": 0.19,
+                "35-44": 0.20,
+                "45-54": 0.24,
+                "55+": 0.27
+              },
+              "gender": {
+                "Male": 0.24,
+                "Female": 0.19,
+                "Other": 0.13
+              }
+            }
+          },
+          {
+            "label": "Probably would not buy",
+            "count": 32,
+            "percentage": 0.08,
+            "breaks": {
+              "age": {
+                "18-24": 0.07,
+                "25-34": 0.06,
+                "35-44": 0.08,
+                "45-54": 0.09,
+                "55+": 0.11
+              },
+              "gender": {
+                "Male": 0.10,
+                "Female": 0.06,
+                "Other": 0.13
+              }
+            }
+          },
+          {
+            "label": "Definitely would not buy",
+            "count": 12,
+            "percentage": 0.03,
+            "breaks": {
+              "age": {
+                "18-24": 0.02,
+                "25-34": 0.02,
+                "35-44": 0.03,
+                "45-54": 0.03,
+                "55+": 0.04
+              },
+              "gender": {
+                "Male": 0.04,
+                "Female": 0.02,
+                "Other": 0.00
+              }
+            }
+          }
+        ],
+        "mean": 3.80,
+        "median": 4
+      },
+      "significance_tests": [
+        {
+          "break_variable": "age",
+          "groups_compared": ["18-24", "55+"],
+          "p_value": 0.03,
+          "significant": true
+        }
+      ],
+      "ai_insight": "Purchase intent is strong (68% top-2-box). Younger respondents significantly more likely to purchase. Intent slightly lower than appeal, suggesting some conversion friction."
+    },
+    {
+      "question_id": "PRICE_1",
+      "question_text": "At what price would you consider Product X to be so expensive that you would not consider buying it? (Too expensive)",
+      "question_type": "open_numeric",
+      "sample_size": 403,
+      "results": {
+        "mean": 45.30,
+        "median": 42,
+        "options": []
+      },
+      "ai_insight": "Mean 'too expensive' threshold is $45, suggesting an upper bound for pricing strategy."
+    },
+    {
+      "question_id": "PRICE_2",
+      "question_text": "At what price would you consider Product X to be priced so low that you would feel the quality couldn't be very good? (Too cheap)",
+      "question_type": "open_numeric",
+      "sample_size": 403,
+      "results": {
+        "mean": 12.80,
+        "median": 12,
+        "options": []
+      },
+      "ai_insight": "Mean 'too cheap' threshold is $13, establishing a quality floor."
+    },
+    {
+      "question_id": "PRICE_3",
+      "question_text": "At what price would you consider Product X starting to get expensive, so that it's not out of the question, but you'd have to give some thought to buying it? (Expensive/high)",
+      "question_type": "open_numeric",
+      "sample_size": 403,
+      "results": {
+        "mean": 35.60,
+        "median": 35,
+        "options": []
+      },
+      "ai_insight": "Mean 'expensive' threshold is $36."
+    },
+    {
+      "question_id": "PRICE_4",
+      "question_text": "At what price would you consider Product X to be a bargain—a great buy for the money? (Cheap/good value)",
+      "question_type": "open_numeric",
+      "sample_size": 403,
+      "results": {
+        "mean": 22.40,
+        "median": 22,
+        "options": []
+      },
+      "ai_insight": "Mean 'good value' threshold is $22."
+    }
+  ],
+  "specialty_analyses": [
+    {
+      "type": "van_westendorp",
+      "data": {
+        "too_cheap_curve": [
+          [10, 0.02], [12, 0.08], [14, 0.18], [16, 0.32], [18, 0.48],
+          [20, 0.62], [22, 0.72], [24, 0.81], [26, 0.87], [28, 0.91],
+          [30, 0.94], [32, 0.96], [34, 0.97], [36, 0.98], [38, 0.99],
+          [40, 0.99], [45, 1.00], [50, 1.00]
+        ],
+        "good_value_curve": [
+          [10, 0.95], [12, 0.91], [14, 0.85], [16, 0.77], [18, 0.68],
+          [20, 0.58], [22, 0.48], [24, 0.38], [26, 0.29], [28, 0.22],
+          [30, 0.16], [32, 0.11], [34, 0.08], [36, 0.05], [38, 0.03],
+          [40, 0.02], [45, 0.01], [50, 0.00]
+        ],
+        "expensive_curve": [
+          [10, 0.01], [12, 0.01], [14, 0.02], [16, 0.03], [18, 0.05],
+          [20, 0.08], [22, 0.12], [24, 0.18], [26, 0.26], [28, 0.35],
+          [30, 0.45], [32, 0.56], [34, 0.67], [36, 0.76], [38, 0.84],
+          [40, 0.90], [45, 0.96], [50, 0.99]
+        ],
+        "too_expensive_curve": [
+          [10, 0.00], [12, 0.00], [14, 0.01], [16, 0.01], [18, 0.02],
+          [20, 0.03], [22, 0.05], [24, 0.08], [26, 0.12], [28, 0.17],
+          [30, 0.24], [32, 0.32], [34, 0.42], [36, 0.53], [38, 0.64],
+          [40, 0.74], [45, 0.88], [50, 0.96]
+        ],
+        "optimal_price_point": 29,
+        "point_marginal_cheapness": 24,
+        "point_marginal_expensiveness": 38,
+        "indifference_price_point": 28,
+        "acceptable_range": {
+          "low": 22,
+          "high": 38
+        }
+      }
+    }
+  ]
+}

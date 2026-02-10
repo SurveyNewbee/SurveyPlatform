@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import SetupPage from './pages/SetupPage';
 import ProjectPage from './pages/ProjectPage';
 import PreviewPage from './pages/PreviewPage';
+import ReportPage from './pages/ReportPage';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/setup" element={<SetupPage />} />
         <Route path="/project/:projectId" element={<ProjectPage />} />
         <Route path="/project/:projectId/preview" element={<PreviewPage />} />
+        <Route path="/project/:projectId/report" element={<ReportPage />} />
       </Routes>
     </div>
   );
