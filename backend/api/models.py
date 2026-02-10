@@ -178,3 +178,67 @@ class ValidateSurveyResponse(BaseModel):
     has_errors: bool = False
     error_count: int = 0
     warning_count: int = 0
+
+
+# ==================== SURVEY EDITING ====================
+
+class EditQuestionRequest(BaseModel):
+    """Request to edit a question."""
+    survey: Dict[str, Any]
+    question_id: str
+    updates: Dict[str, Any]  # Fields to update (question_text, response_options, etc.)
+
+
+class AddQuestionRequest(BaseModel):
+    """Request to add a new question."""
+    survey: Dict[str, Any]
+    section_id: str  # e.g., "SCREENER", "MAIN_SECTION", "DEMOGRAPHICS"
+    subsection_id: Optional[str] = None  # For MAIN_SECTION subsections
+    question: Dict[str, Any]  # Full question object
+    position: Optional[int] = None  # Insert position, None = append
+
+
+class DeleteQuestionRequest(BaseModel):
+    """Request to delete a question."""
+    survey: Dict[str, Any]
+    question_id: str
+
+
+class ReorderQuestionRequest(BaseModel):
+    """Request to reorder a question."""
+    survey: Dict[str, Any]
+    question_id: str
+    direction: Literal["up", "down"]
+
+
+class EditSectionRequest(BaseModel):
+    """Request to edit a section title."""
+    survey: Dict[str, Any]
+    section_id: str  # e.g., "SCREENER", "MAIN_SECTION", "DEMOGRAPHICS"
+    subsection_id: Optional[str] = None  # For MAIN_SECTION subsections
+    title: str
+
+
+# ==================== COMMENTS ====================
+
+class SaveCommentRequest(BaseModel):
+    """Request to save a comment on a question."""
+    project_id: str
+    question_id: str
+    text: str
+
+
+class GetCommentsRequest(BaseModel):
+    """Request to get comments for a project."""
+    project_id: str
+
+
+class SummarizeCommentsRequest(BaseModel):
+    """Request to summarize comments with AI."""
+    project_id: str
+
+
+class ApplyCommentEditsRequest(BaseModel):
+    """Request to apply AI-generated edits based on comment themes."""
+    project_id: str
+    theme_ids: List[str]

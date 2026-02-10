@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProject, generateSurvey, generateSurveyStream, updateProject, updateLOI, pinQuestion, excludeQuestion, resetQuestionOverride } from '../api/client';
+import { getProject, generateSurvey, generateSurveyStream, updateProject, updateLOI, pinQuestion, excludeQuestion, resetQuestionOverride, editQuestion, deleteQuestion, reorderQuestion, editSection, addQuestion } from '../api/client';
 import type { Project, ValidationLogEntry } from '../types';
 import LOISlider from '../components/LOISlider';
 import QuestionCard from '../components/QuestionCard';
 import StreamingModal from '../components/StreamingModal';
+import EditableHeader from '../components/EditableHeader';
+import AddQuestionModal from '../components/AddQuestionModal';
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -21,6 +23,7 @@ export default function ProjectPage() {
   
   const [selectedTab, setSelectedTab] = useState<'overview' | 'survey' | 'validation'>('overview');
   const [loiCollapsed, setLoiCollapsed] = useState(false);
+  const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
 
   useEffect(() => {
     loadProject();
@@ -175,6 +178,71 @@ export default function ProjectPage() {
     }
   }
 
+  async function handleEditQuestion(questionId: string, updates: any) {
+    if (!project || !project.survey_json || !projectId) return;
+
+    const response = await editQuestion(project.survey_json, questionId, updates);
+    
+    if (response.success && response.data) {
+      await updateProject(projectId, {
+        survey_json: response.data.survey,
+      });
+      await loadProject();
+    }
+  }
+
+  async function handleDeleteQuestion(questionId: string) {
+    if (!project || !project.survey_json || !projectId) return;
+
+    const response = await deleteQuestion(project.survey_json, questionId);
+    
+    if (response.success && response.data) {
+      await updateProject(projectId, {
+        survey_json: response.data.survey,
+      });
+      await loadProject();
+    }
+  }
+
+  async function handleReorderQuestion(questionId: string, direction: 'up' | 'down') {
+    if (!project || !project.survey_json || !projectId) return;
+
+    const response = await reorderQuestion(project.survey_json, questionId, direction);
+    
+    if (response.success && response.data) {
+      await updateProject(projectId, {
+        survey_json: response.data.survey,
+      });
+      await loadProject();
+    }
+  }
+
+  async function handleEditSection(sectionId: string, subsectionId: string | null, title: string) {
+    if (!project || !project.survey_json || !projectId) return;
+
+    const response = await editSection(project.survey_json, sectionId, subsectionId, title);
+    
+    if (response.success && response.data) {
+      await updateProject(projectId, {
+        survey_json: response.data.survey,
+      });
+      await loadProject();
+    }
+  }
+
+  async function handleAddQuestion(sectionId: string, subsectionId: string | null, question: any, position?: number) {
+    if (!project || !project.survey_json || !projectId) return;
+
+    const response = await addQuestion(project.survey_json, sectionId, subsectionId, question, position);
+    
+    if (response.success && response.data) {
+      await updateProject(projectId, {
+        survey_json: response.data.survey,
+      });
+      await loadProject();
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -199,12 +267,28 @@ export default function ProjectPage() {
     );
   }
 
+  // Prepare sections data for Add Question modal
+  const modalSections = project?.survey_json ? {
+    screener: !!project.survey_json.SCREENER,
+    mainSections: project.survey_json.MAIN_SECTION?.sub_sections?.map((s: any) => ({
+      id: s.subsection_id,
+      title: s.subsection_title
+    })) || [],
+    demographics: !!project.survey_json.DEMOGRAPHICS,
+  } : { screener: false, mainSections: [], demographics: false };
+
   return (
     <>
       <StreamingModal
         isOpen={showStreamingModal}
         title="Generating Survey from Blueprint"
         content={streamingContent}
+      />
+      <AddQuestionModal
+        isOpen={showAddQuestionModal}
+        onClose={() => setShowAddQuestionModal(false)}
+        onAdd={handleAddQuestion}
+        sections={modalSections}
       />
       <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Header */}
@@ -381,10 +465,16 @@ export default function ProjectPage() {
               )}
 
               <div className="p-6 space-y-6">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-4">
                   <p className="text-green-900">
                     ✓ Survey generated successfully
                   </p>
+                  <button
+                    onClick={() => setShowAddQuestionModal(true)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+                  >
+                    <span className="text-lg">+</span> Add Question
+                  </button>
                 </div>
 
               {/* Study Metadata */}
@@ -452,9 +542,13 @@ export default function ProjectPage() {
               {/* Screener Questions */}
               {project.survey_json.SCREENER && (
                 <div className="bg-white rounded-lg shadow-md p-6">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 border-l-4 border-blue-500 pl-4">
-                    Screener ({project.survey_json.SCREENER.questions?.length || 0} questions)
-                  </h3>
+                  <div className="mb-4 border-l-4 border-blue-500 pl-4">
+                    <EditableHeader
+                      title={`${project.survey_json.SCREENER.section_title || 'Screener'} (${project.survey_json.SCREENER.questions?.length || 0} questions)`}
+                      onSave={(newTitle) => handleEditSection('SCREENER', null, newTitle.split(' (')[0])}
+                      className="text-xl font-semibold text-gray-800"
+                    />
+                  </div>
                   <div className="space-y-4">
                     {project.survey_json.SCREENER.questions?.map((q: any, idx: number) => (
                       <QuestionCard
@@ -464,6 +558,11 @@ export default function ProjectPage() {
                         onPin={handlePinQuestion}
                         onExclude={handleExcludeQuestion}
                         onResetOverride={handleResetQuestionOverride}
+                        onEdit={handleEditQuestion}
+                        onDelete={handleDeleteQuestion}
+                        onReorder={handleReorderQuestion}
+                        isFirst={idx === 0}
+                        isLast={idx === (project.survey_json.SCREENER.questions?.length || 0) - 1}
                       />
                     ))}
                   </div>
@@ -478,9 +577,16 @@ export default function ProjectPage() {
                   </h3>
                   {project.survey_json.MAIN_SECTION.sub_sections?.map((subsection: any, subIdx: number) => (
                     <div key={subIdx} className="mb-6">
-                      <h4 className="text-lg font-semibold text-gray-700 mb-3 border-l-4 border-green-300 pl-3">
-                        {subsection.subsection_id}: {subsection.subsection_title}
-                      </h4>
+                      <div className="mb-3 border-l-4 border-green-300 pl-3">
+                        <EditableHeader
+                          title={`${subsection.subsection_id}: ${subsection.subsection_title}`}
+                          onSave={(newTitle) => {
+                            const titleWithoutId = newTitle.includes(':') ? newTitle.split(': ').slice(1).join(': ') : newTitle;
+                            handleEditSection('MAIN_SECTION', subsection.subsection_id, titleWithoutId);
+                          }}
+                          className="text-lg font-semibold text-gray-700"
+                        />
+                      </div>
                       {subsection.purpose && (
                         <p className="text-sm text-gray-600 mb-4 italic ml-3">
                           {subsection.purpose}
@@ -495,6 +601,11 @@ export default function ProjectPage() {
                               onPin={handlePinQuestion}
                               onExclude={handleExcludeQuestion}
                               onResetOverride={handleResetQuestionOverride}
+                              onEdit={handleEditQuestion}
+                              onDelete={handleDeleteQuestion}
+                              onReorder={handleReorderQuestion}
+                              isFirst={idx === 0}
+                              isLast={idx === (subsection.questions?.length || 0) - 1}
                             />
                           </div>
                         ))}
@@ -507,9 +618,13 @@ export default function ProjectPage() {
               {/* Demographics */}
               {project.survey_json.DEMOGRAPHICS && (
                 <div className="bg-white rounded-lg shadow-md p-6">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 border-l-4 border-purple-500 pl-4">
-                    Demographics ({project.survey_json.DEMOGRAPHICS.questions?.length || 0} questions)
-                  </h3>
+                  <div className="mb-4 border-l-4 border-purple-500 pl-4">
+                    <EditableHeader
+                      title={`${project.survey_json.DEMOGRAPHICS.section_title || 'Demographics'} (${project.survey_json.DEMOGRAPHICS.questions?.length || 0} questions)`}
+                      onSave={(newTitle) => handleEditSection('DEMOGRAPHICS', null, newTitle.split(' (')[0])}
+                      className="text-xl font-semibold text-gray-800"
+                    />
+                  </div>
                   <div className="space-y-4">
                     {project.survey_json.DEMOGRAPHICS.questions?.map((q: any, idx: number) => (
                       <QuestionCard
@@ -519,6 +634,11 @@ export default function ProjectPage() {
                         onPin={handlePinQuestion}
                         onExclude={handleExcludeQuestion}
                         onResetOverride={handleResetQuestionOverride}
+                        onEdit={handleEditQuestion}
+                        onDelete={handleDeleteQuestion}
+                        onReorder={handleReorderQuestion}
+                        isFirst={idx === 0}
+                        isLast={idx === (project.survey_json.DEMOGRAPHICS.questions?.length || 0) - 1}
                       />
                     ))}
                   </div>
@@ -532,18 +652,17 @@ export default function ProjectPage() {
                 </h3>
                 <div className="flex space-x-4">
                   <button
-                    disabled
-                    className="bg-gray-300 text-gray-600 px-6 py-3 rounded-lg cursor-not-allowed"
-                    title="Editor coming in Phase 2"
+                    onClick={() => navigate(`/project/${projectId}/preview`)}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
                   >
-                    Edit Survey (Coming Soon)
+                    👁️ Preview as Respondent
                   </button>
                   <button
                     disabled
                     className="bg-gray-300 text-gray-600 px-6 py-3 rounded-lg cursor-not-allowed"
-                    title="Preview coming in Phase 3"
+                    title="Reporting coming in Phase 5"
                   >
-                    Preview (Coming Soon)
+                    Generate Report (Coming Soon)
                   </button>
                 </div>
               </div>

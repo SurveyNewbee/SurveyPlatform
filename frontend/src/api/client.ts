@@ -12,9 +12,14 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<API
       },
     });
 
+    if (!response.ok) {
+      console.error(`API error: ${response.status} ${response.statusText} for ${endpoint}`);
+    }
+
     const data = await response.json();
     return data;
   } catch (error) {
+    console.error(`Fetch error for ${endpoint}:`, error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -240,4 +245,117 @@ export async function resetQuestionOverride(survey: any, questionId: string) {
       question_id: questionId,
     }),
   });
+}
+
+// Survey Editing
+export async function editQuestion(survey: any, questionId: string, updates: any) {
+  return fetchAPI<{ survey: any }>('/api/edit-question', {
+    method: 'POST',
+    body: JSON.stringify({
+      survey,
+      question_id: questionId,
+      updates,
+    }),
+  });
+}
+
+export async function addQuestion(survey: any, sectionId: string, subsectionId: string | null, question: any, position?: number) {
+  return fetchAPI<{ survey: any }>('/api/add-question', {
+    method: 'POST',
+    body: JSON.stringify({
+      survey,
+      section_id: sectionId,
+      subsection_id: subsectionId,
+      question,
+      position,
+    }),
+  });
+}
+
+export async function deleteQuestion(survey: any, questionId: string) {
+  return fetchAPI<{ survey: any }>('/api/delete-question', {
+    method: 'POST',
+    body: JSON.stringify({
+      survey,
+      question_id: questionId,
+    }),
+  });
+}
+
+export async function reorderQuestion(survey: any, questionId: string, direction: 'up' | 'down') {
+  return fetchAPI<{ survey: any }>('/api/reorder-question', {
+    method: 'POST',
+    body: JSON.stringify({
+      survey,
+      question_id: questionId,
+      direction,
+    }),
+  });
+}
+
+export async function editSection(survey: any, sectionId: string, subsectionId: string | null, title: string) {
+  return fetchAPI<{ survey: any }>('/api/edit-section', {
+    method: 'POST',
+    body: JSON.stringify({
+      survey,
+      section_id: sectionId,
+      subsection_id: subsectionId,
+      title,
+    }),
+  });
+}
+
+// ==================== COMMENTS ====================
+
+export async function saveComment(projectId: string, questionId: string, text: string) {
+  return fetchAPI<{ comment: any; total_comments: number }>('/api/save-comment', {
+    method: 'POST',
+    body: JSON.stringify({
+      project_id: projectId,
+      question_id: questionId,
+      text,
+    }),
+  });
+}
+
+export async function getComments(projectId: string) {
+  return fetchAPI<{ comments: any[]; total_comments: number }>('/api/get-comments', {
+    method: 'POST',
+    body: JSON.stringify({
+      project_id: projectId,
+    }),
+  });
+}
+
+export async function summarizeComments(projectId: string) {
+  return fetchAPI<{ improvements: any[] }>('/api/summarize-comments', {
+    method: 'POST',
+    body: JSON.stringify({
+      project_id: projectId,
+    }),
+  });
+}
+
+// Apply comment edits with streaming
+export async function applyCommentEditsStream(projectId: string, themeIds: string[]): Promise<ReadableStream<Uint8Array>> {
+  const response = await fetch(`${API_BASE_URL}/api/apply-comment-edits/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      project_id: projectId,
+      theme_ids: themeIds,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  if (!response.body) {
+    throw new Error('No response body');
+  }
+
+  return response.body;
 }
