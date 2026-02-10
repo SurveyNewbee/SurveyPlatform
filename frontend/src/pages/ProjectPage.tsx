@@ -658,11 +658,10 @@ export default function ProjectPage() {
                     👁️ Preview as Respondent
                   </button>
                   <button
-                    disabled
-                    className="bg-gray-300 text-gray-600 px-6 py-3 rounded-lg cursor-not-allowed"
-                    title="Reporting coming in Phase 5"
+                    onClick={() => navigate(`/project/${projectId}/report`)}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
                   >
-                    Generate Report (Coming Soon)
+                    📊 Generate Report
                   </button>
                 </div>
               </div>
