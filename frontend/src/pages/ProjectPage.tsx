@@ -663,6 +663,12 @@ export default function ProjectPage() {
                   >
                     📊 Generate Report
                   </button>
+                  <button
+                    onClick={() => navigate(`/project/${projectId}/launch`)}
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
+                  >
+                    🚀 Launch Study
+                  </button>
                 </div>
               </div>
               </div>

@@ -5,6 +5,8 @@ import SetupPage from './pages/SetupPage';
 import ProjectPage from './pages/ProjectPage';
 import PreviewPage from './pages/PreviewPage';
 import ReportPage from './pages/ReportPage';
+import LaunchPage from './pages/LaunchPage';
+import StatusPage from './pages/StatusPage';
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
         <Route path="/project/:projectId" element={<ProjectPage />} />
         <Route path="/project/:projectId/preview" element={<PreviewPage />} />
         <Route path="/project/:projectId/report" element={<ReportPage />} />
+        <Route path="/project/:projectId/launch" element={<LaunchPage />} />
+        <Route path="/project/:projectId/status" element={<StatusPage />} />
       </Routes>
     </div>
   );
