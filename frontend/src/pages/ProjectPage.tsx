@@ -293,28 +293,34 @@ export default function ProjectPage() {
       
       {/* Fixed Left Sidebar - Next Steps */}
       {project.survey_json && (
-        <div className="fixed left-0 top-24 w-64 h-[calc(100vh-6rem)] bg-white border-r border-gray-200 shadow-lg z-10 p-6">
+        <div className="fixed left-0 top-24 w-64 h-[calc(100vh-6rem)] z-10 p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
             Next Steps
           </h3>
           <div className="space-y-3">
             <button
               onClick={() => navigate(`/project/${projectId}/preview`)}
-              className="w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center"
+              className="w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center shadow-md"
             >
               <span className="mr-2">👁️</span> Preview as Respondent
             </button>
             <button
               onClick={() => navigate(`/project/${projectId}/report`)}
-              className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center"
+              className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center shadow-md"
             >
               <span className="mr-2">📊</span> Generate Report
             </button>
             <button
               onClick={() => navigate(`/project/${projectId}/launch`)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center"
+              className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center shadow-md"
             >
               <span className="mr-2">🚀</span> Launch Study
+            </button>
+            <button
+              onClick={() => navigate(`/project/${projectId}/status`)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center shadow-md"
+            >
+              <span className="mr-2">📡</span> Monitor Fieldwork
             </button>
           </div>
         </div>
