@@ -1,0 +1,860 @@
+{
+  "survey_id": "message-test-001",
+  "title": "Brand X Campaign Message Testing",
+  "field_dates": {
+    "start": "2026-01-20",
+    "end": "2026-01-23"
+  },
+  "sample_size": 302,
+  "completion_rate": 0.84,
+  "actual_loi_minutes": 8.5,
+  "executive_summary": [
+    "Message A ('Innovation Focus') drives highest purchase intent (+12 pts vs. control)",
+    "Message B shows strong brand differentiation scores but lower persuasion",
+    "Message C tests highest on emotional connection (72% top-2-box)",
+    "All three messages significantly outperform control on key brand attributes",
+    "Recommendation: Lead with Message A in awareness phase, transition to Message C for conversion"
+  ],
+  "demographics": {
+    "age": {
+      "18-24": 0.18,
+      "25-34": 0.31,
+      "35-44": 0.26,
+      "45-54": 0.16,
+      "55+": 0.09
+    },
+    "gender": {
+      "Male": 0.51,
+      "Female": 0.47,
+      "Other": 0.02
+    },
+    "income": {
+      "Under $35k": 0.14,
+      "$35k-$50k": 0.19,
+      "$50k-$75k": 0.31,
+      "$75k-$100k": 0.22,
+      "Over $100k": 0.14
+    }
+  },
+  "questions": [
+    {
+      "question_id": "SCREEN_1",
+      "question_text": "Are you familiar with Brand X?",
+      "question_type": "single_choice",
+      "sample_size": 302,
+      "results": {
+        "options": [
+          {
+            "label": "Very familiar",
+            "count": 87,
+            "percentage": 0.29,
+            "breaks": {
+              "age": {
+                "18-24": 0.22,
+                "25-34": 0.28,
+                "35-44": 0.32,
+                "45-54": 0.33,
+                "55+": 0.30
+              },
+              "gender": {
+                "Male": 0.31,
+                "Female": 0.27,
+                "Other": 0.17
+              }
+            }
+          },
+          {
+            "label": "Somewhat familiar",
+            "count": 143,
+            "percentage": 0.47,
+            "breaks": {
+              "age": {
+                "18-24": 0.48,
+                "25-34": 0.49,
+                "35-44": 0.46,
+                "45-54": 0.44,
+                "55+": 0.48
+              },
+              "gender": {
+                "Male": 0.45,
+                "Female": 0.50,
+                "Other": 0.50
+              }
+            }
+          },
+          {
+            "label": "Not very familiar",
+            "count": 52,
+            "percentage": 0.17,
+            "breaks": {
+              "age": {
+                "18-24": 0.20,
+                "25-34": 0.16,
+                "35-44": 0.15,
+                "45-54": 0.17,
+                "55+": 0.18
+              },
+              "gender": {
+                "Male": 0.17,
+                "Female": 0.17,
+                "Other": 0.17
+              }
+            }
+          },
+          {
+            "label": "Not familiar at all",
+            "count": 20,
+            "percentage": 0.07,
+            "breaks": {
+              "age": {
+                "18-24": 0.10,
+                "25-34": 0.07,
+                "35-44": 0.07,
+                "45-54": 0.06,
+                "55+": 0.04
+              },
+              "gender": {
+                "Male": 0.07,
+                "Female": 0.06,
+                "Other": 0.16
+              }
+            }
+          }
+        ]
+      },
+      "ai_insight": "Strong baseline familiarity (76% top-2-box) provides solid foundation for message testing. Familiarity increases with age."
+    },
+    {
+      "question_id": "MSG_A_RECALL",
+      "question_text": "After viewing Message A, how much do you recall about the main claim?",
+      "question_type": "rating_scale",
+      "sample_size": 101,
+      "results": {
+        "options": [
+          {
+            "label": "Remember everything",
+            "count": 42,
+            "percentage": 0.42,
+            "breaks": {
+              "age": {
+                "18-24": 0.50,
+                "25-34": 0.45,
+                "35-44": 0.41,
+                "45-54": 0.35,
+                "55+": 0.30
+              },
+              "gender": {
+                "Male": 0.44,
+                "Female": 0.39,
+                "Other": 0.50
+              }
+            }
+          },
+          {
+            "label": "Remember most",
+            "count": 38,
+            "percentage": 0.38,
+            "breaks": {
+              "age": {
+                "18-24": 0.33,
+                "25-34": 0.37,
+                "35-44": 0.39,
+                "45-54": 0.42,
+                "55+": 0.40
+              },
+              "gender": {
+                "Male": 0.37,
+                "Female": 0.39,
+                "Other": 0.33
+              }
+            }
+          },
+          {
+            "label": "Remember some",
+            "count": 15,
+            "percentage": 0.15,
+            "breaks": {
+              "age": {
+                "18-24": 0.11,
+                "25-34": 0.13,
+                "35-44": 0.14,
+                "45-54": 0.19,
+                "55+": 0.22
+              },
+              "gender": {
+                "Male": 0.14,
+                "Female": 0.17,
+                "Other": 0.17
+              }
+            }
+          },
+          {
+            "label": "Remember little",
+            "count": 4,
+            "percentage": 0.04,
+            "breaks": {
+              "age": {
+                "18-24": 0.04,
+                "25-34": 0.04,
+                "35-44": 0.04,
+                "45-54": 0.03,
+                "55+": 0.07
+              },
+              "gender": {
+                "Male": 0.04,
+                "Female": 0.04,
+                "Other": 0.00
+              }
+            }
+          },
+          {
+            "label": "Don't remember",
+            "count": 2,
+            "percentage": 0.02,
+            "breaks": {
+              "age": {
+                "18-24": 0.02,
+                "25-34": 0.01,
+                "35-44": 0.02,
+                "45-54": 0.01,
+                "55+": 0.01
+              },
+              "gender": {
+                "Male": 0.01,
+                "Female": 0.01,
+                "Other": 0.00
+              }
+            }
+          }
+        ],
+        "mean": 4.13,
+        "median": 4
+      },
+      "ai_insight": "Message A shows exceptional recall (80% top-2-box). Innovation-focused message resonates particularly well with younger audiences."
+    },
+    {
+      "question_id": "MSG_A_PURCHASE",
+      "question_text": "How likely are you to purchase Brand X after seeing Message A?",
+      "question_type": "rating_scale",
+      "sample_size": 101,
+      "results": {
+        "options": [
+          {
+            "label": "Definitely would buy",
+            "count": 31,
+            "percentage": 0.31,
+            "breaks": {
+              "age": {
+                "18-24": 0.39,
+                "25-34": 0.35,
+                "35-44": 0.29,
+                "45-54": 0.24,
+                "55+": 0.22
+              },
+              "gender": {
+                "Male": 0.33,
+                "Female": 0.28,
+                "Other": 0.33
+              }
+            }
+          },
+          {
+            "label": "Probably would buy",
+            "count": 44,
+            "percentage": 0.44,
+            "breaks": {
+              "age": {
+                "18-24": 0.39,
+                "25-34": 0.43,
+                "35-44": 0.46,
+                "45-54": 0.46,
+                "55+": 0.44
+              },
+              "gender": {
+                "Male": 0.43,
+                "Female": 0.44,
+                "Other": 0.50
+              }
+            }
+          },
+          {
+            "label": "Might or might not buy",
+            "count": 18,
+            "percentage": 0.18,
+            "breaks": {
+              "age": {
+                "18-24": 0.15,
+                "25-34": 0.16,
+                "35-44": 0.18,
+                "45-54": 0.21,
+                "55+": 0.22
+              },
+              "gender": {
+                "Male": 0.17,
+                "Female": 0.19,
+                "Other": 0.17
+              }
+            }
+          },
+          {
+            "label": "Probably would not buy",
+            "count": 6,
+            "percentage": 0.06,
+            "breaks": {
+              "age": {
+                "18-24": 0.05,
+                "25-34": 0.05,
+                "35-44": 0.06,
+                "45-54": 0.07,
+                "55+": 0.09
+              },
+              "gender": {
+                "Male": 0.06,
+                "Female": 0.07,
+                "Other": 0.00
+              }
+            }
+          },
+          {
+            "label": "Definitely would not buy",
+            "count": 2,
+            "percentage": 0.02,
+            "breaks": {
+              "age": {
+                "18-24": 0.02,
+                "25-34": 0.01,
+                "35-44": 0.01,
+                "45-54": 0.02,
+                "55+": 0.03
+              },
+              "gender": {
+                "Male": 0.01,
+                "Female": 0.02,
+                "Other": 0.00
+              }
+            }
+          }
+        ],
+        "mean": 3.95,
+        "median": 4
+      },
+      "significance_tests": [
+        {
+          "break_variable": "age",
+          "groups_compared": ["18-24", "45-54"],
+          "p_value": 0.03,
+          "significant": true
+        }
+      ],
+      "ai_insight": "Message A drives strongest purchase intent (75% top-2-box), significantly higher among younger consumers. +12 percentage points vs. baseline control."
+    },
+    {
+      "question_id": "MSG_B_RECALL",
+      "question_text": "After viewing Message B, how much do you recall about the main claim?",
+      "question_type": "rating_scale",
+      "sample_size": 100,
+      "results": {
+        "options": [
+          {
+            "label": "Remember everything",
+            "count": 35,
+            "percentage": 0.35,
+            "breaks": {
+              "age": {
+                "18-24": 0.41,
+                "25-34": 0.38,
+                "35-44": 0.34,
+                "45-54": 0.30,
+                "55+": 0.26
+              },
+              "gender": {
+                "Male": 0.36,
+                "Female": 0.34,
+                "Other": 0.33
+              }
+            }
+          },
+          {
+            "label": "Remember most",
+            "count": 41,
+            "percentage": 0.41,
+            "breaks": {
+              "age": {
+                "18-24": 0.38,
+                "25-34": 0.40,
+                "35-44": 0.42,
+                "45-54": 0.43,
+                "55+": 0.41
+              },
+              "gender": {
+                "Male": 0.40,
+                "Female": 0.42,
+                "Other": 0.50
+              }
+            }
+          },
+          {
+            "label": "Remember some",
+            "count": 18,
+            "percentage": 0.18,
+            "breaks": {
+              "age": {
+                "18-24": 0.15,
+                "25-34": 0.16,
+                "35-44": 0.18,
+                "45-54": 0.21,
+                "55+": 0.22
+              },
+              "gender": {
+                "Male": 0.18,
+                "Female": 0.18,
+                "Other": 0.17
+              }
+            }
+          },
+          {
+            "label": "Remember little",
+            "count": 5,
+            "percentage": 0.05,
+            "breaks": {
+              "age": {
+                "18-24": 0.05,
+                "25-34": 0.05,
+                "35-44": 0.05,
+                "45-54": 0.05,
+                "55+": 0.09
+              },
+              "gender": {
+                "Male": 0.05,
+                "Female": 0.05,
+                "Other": 0.00
+              }
+            }
+          },
+          {
+            "label": "Don't remember",
+            "count": 1,
+            "percentage": 0.01,
+            "breaks": {
+              "age": {
+                "18-24": 0.01,
+                "25-34": 0.01,
+                "35-44": 0.01,
+                "45-54": 0.01,
+                "55+": 0.02
+              },
+              "gender": {
+                "Male": 0.01,
+                "Female": 0.01,
+                "Other": 0.00
+              }
+            }
+          }
+        ],
+        "mean": 4.04,
+        "median": 4
+      },
+      "ai_insight": "Message B shows strong recall (76% top-2-box), slightly below Message A but still highly effective."
+    },
+    {
+      "question_id": "MSG_B_PURCHASE",
+      "question_text": "How likely are you to purchase Brand X after seeing Message B?",
+      "question_type": "rating_scale",
+      "sample_size": 100,
+      "results": {
+        "options": [
+          {
+            "label": "Definitely would buy",
+            "count": 24,
+            "percentage": 0.24,
+            "breaks": {
+              "age": {
+                "18-24": 0.30,
+                "25-34": 0.27,
+                "35-44": 0.23,
+                "45-54": 0.20,
+                "55+": 0.18
+              },
+              "gender": {
+                "Male": 0.25,
+                "Female": 0.23,
+                "Other": 0.25
+              }
+            }
+          },
+          {
+            "label": "Probably would buy",
+            "count": 42,
+            "percentage": 0.42,
+            "breaks": {
+              "age": {
+                "18-24": 0.41,
+                "25-34": 0.42,
+                "35-44": 0.43,
+                "45-54": 0.42,
+                "55+": 0.41
+              },
+              "gender": {
+                "Male": 0.41,
+                "Female": 0.43,
+                "Other": 0.42
+              }
+            }
+          },
+          {
+            "label": "Might or might not buy",
+            "count": 25,
+            "percentage": 0.25,
+            "breaks": {
+              "age": {
+                "18-24": 0.21,
+                "25-34": 0.23,
+                "35-44": 0.25,
+                "45-54": 0.28,
+                "55+": 0.30
+              },
+              "gender": {
+                "Male": 0.25,
+                "Female": 0.25,
+                "Other": 0.25
+              }
+            }
+          },
+          {
+            "label": "Probably would not buy",
+            "count": 7,
+            "percentage": 0.07,
+            "breaks": {
+              "age": {
+                "18-24": 0.06,
+                "25-34": 0.06,
+                "35-44": 0.07,
+                "45-54": 0.08,
+                "55+": 0.09
+              },
+              "gender": {
+                "Male": 0.07,
+                "Female": 0.07,
+                "Other": 0.08
+              }
+            }
+          },
+          {
+            "label": "Definitely would not buy",
+            "count": 2,
+            "percentage": 0.02,
+            "breaks": {
+              "age": {
+                "18-24": 0.02,
+                "25-34": 0.02,
+                "35-44": 0.02,
+                "45-54": 0.02,
+                "55+": 0.02
+              },
+              "gender": {
+                "Male": 0.02,
+                "Female": 0.02,
+                "Other": 0.00
+              }
+            }
+          }
+        ],
+        "mean": 3.79,
+        "median": 4
+      },
+      "ai_insight": "Message B drives solid purchase intent (66% top-2-box) but lags Message A by 9 percentage points. More balanced appeal across age groups."
+    },
+    {
+      "question_id": "MSG_C_RECALL",
+      "question_text": "After viewing Message C, how much do you recall about the main claim?",
+      "question_type": "rating_scale",
+      "sample_size": 101,
+      "results": {
+        "options": [
+          {
+            "label": "Remember everything",
+            "count": 47,
+            "percentage": 0.47,
+            "breaks": {
+              "age": {
+                "18-24": 0.52,
+                "25-34": 0.49,
+                "35-44": 0.46,
+                "45-54": 0.43,
+                "55+": 0.40
+              },
+              "gender": {
+                "Male": 0.45,
+                "Female": 0.48,
+                "Other": 0.50
+              }
+            }
+          },
+          {
+            "label": "Remember most",
+            "count": 34,
+            "percentage": 0.34,
+            "breaks": {
+              "age": {
+                "18-24": 0.30,
+                "25-34": 0.33,
+                "35-44": 0.35,
+                "45-54": 0.37,
+                "55+": 0.35
+              },
+              "gender": {
+                "Male": 0.35,
+                "Female": 0.32,
+                "Other": 0.33
+              }
+            }
+          },
+          {
+            "label": "Remember some",
+            "count": 15,
+            "percentage": 0.15,
+            "breaks": {
+              "age": {
+                "18-24": 0.13,
+                "25-34": 0.14,
+                "35-44": 0.15,
+                "45-54": 0.16,
+                "55+": 0.19
+              },
+              "gender": {
+                "Male": 0.16,
+                "Female": 0.15,
+                "Other": 0.17
+              }
+            }
+          },
+          {
+            "label": "Remember little",
+            "count": 3,
+            "percentage": 0.03,
+            "breaks": {
+              "age": {
+                "18-24": 0.03,
+                "25-34": 0.03,
+                "35-44": 0.03,
+                "45-54": 0.03,
+                "55+": 0.05
+              },
+              "gender": {
+                "Male": 0.03,
+                "Female": 0.04,
+                "Other": 0.00
+              }
+            }
+          },
+          {
+            "label": "Don't remember",
+            "count": 2,
+            "percentage": 0.02,
+            "breaks": {
+              "age": {
+                "18-24": 0.02,
+                "25-34": 0.01,
+                "35-44": 0.01,
+                "45-54": 0.01,
+                "55+": 0.01
+              },
+              "gender": {
+                "Male": 0.01,
+                "Female": 0.01,
+                "Other": 0.00
+              }
+            }
+          }
+        ],
+        "mean": 4.20,
+        "median": 4
+      },
+      "ai_insight": "Message C achieves highest recall of all three variants (81% top-2-box). Emotional storytelling approach proves highly memorable."
+    },
+    {
+      "question_id": "MSG_C_PURCHASE",
+      "question_text": "How likely are you to purchase Brand X after seeing Message C?",
+      "question_type": "rating_scale",
+      "sample_size": 101,
+      "results": {
+        "options": [
+          {
+            "label": "Definitely would buy",
+            "count": 28,
+            "percentage": 0.28,
+            "breaks": {
+              "age": {
+                "18-24": 0.35,
+                "25-34": 0.31,
+                "35-44": 0.27,
+                "45-54": 0.23,
+                "55+": 0.20
+              },
+              "gender": {
+                "Male": 0.27,
+                "Female": 0.29,
+                "Other": 0.30
+              }
+            }
+          },
+          {
+            "label": "Probably would buy",
+            "count": 46,
+            "percentage": 0.46,
+            "breaks": {
+              "age": {
+                "18-24": 0.43,
+                "25-34": 0.45,
+                "35-44": 0.47,
+                "45-54": 0.48,
+                "55+": 0.46
+              },
+              "gender": {
+                "Male": 0.45,
+                "Female": 0.46,
+                "Other": 0.50
+              }
+            }
+          },
+          {
+            "label": "Might or might not buy",
+            "count": 20,
+            "percentage": 0.20,
+            "breaks": {
+              "age": {
+                "18-24": 0.17,
+                "25-34": 0.19,
+                "35-44": 0.20,
+                "45-54": 0.22,
+                "55+": 0.24
+              },
+              "gender": {
+                "Male": 0.21,
+                "Female": 0.19,
+                "Other": 0.20
+              }
+            }
+          },
+          {
+            "label": "Probably would not buy",
+            "count": 5,
+            "percentage": 0.05,
+            "breaks": {
+              "age": {
+                "18-24": 0.04,
+                "25-34": 0.04,
+                "35-44": 0.05,
+                "45-54": 0.06,
+                "55+": 0.08
+              },
+              "gender": {
+                "Male": 0.06,
+                "Female": 0.05,
+                "Other": 0.00
+              }
+            }
+          },
+          {
+            "label": "Definitely would not buy",
+            "count": 2,
+            "percentage": 0.02,
+            "breaks": {
+              "age": {
+                "18-24": 0.01,
+                "25-34": 0.01,
+                "35-44": 0.01,
+                "45-54": 0.01,
+                "55+": 0.02
+              },
+              "gender": {
+                "Male": 0.01,
+                "Female": 0.01,
+                "Other": 0.00
+              }
+            }
+          }
+        ],
+        "mean": 3.92,
+        "median": 4
+      },
+      "ai_insight": "Message C shows strong purchase intent (74% top-2-box), nearly matching Message A. Highest emotional connection scores suggest long-term brand building potential."
+    },
+    {
+      "question_id": "MSG_COMPARE",
+      "question_text": "Which message resonated most with you?",
+      "question_type": "single_choice",
+      "sample_size": 302,
+      "results": {
+        "options": [
+          {
+            "label": "Message A (Innovation Focus)",
+            "count": 128,
+            "percentage": 0.42,
+            "breaks": {
+              "age": {
+                "18-24": 0.48,
+                "25-34": 0.45,
+                "35-44": 0.42,
+                "45-54": 0.38,
+                "55+": 0.33
+              },
+              "gender": {
+                "Male": 0.44,
+                "Female": 0.41,
+                "Other": 0.40
+              }
+            }
+          },
+          {
+            "label": "Message B (Quality Emphasis)",
+            "count": 78,
+            "percentage": 0.26,
+            "breaks": {
+              "age": {
+                "18-24": 0.20,
+                "25-34": 0.23,
+                "35-44": 0.26,
+                "45-54": 0.31,
+                "55+": 0.35
+              },
+              "gender": {
+                "Male": 0.27,
+                "Female": 0.25,
+                "Other": 0.25
+              }
+            }
+          },
+          {
+            "label": "Message C (Emotional Story)",
+            "count": 96,
+            "percentage": 0.32,
+            "breaks": {
+              "age": {
+                "18-24": 0.32,
+                "25-34": 0.32,
+                "35-44": 0.32,
+                "45-54": 0.31,
+                "55+": 0.32
+              },
+              "gender": {
+                "Male": 0.29,
+                "Female": 0.34,
+                "Other": 0.35
+              }
+            }
+          }
+        ]
+      },
+      "significance_tests": [
+        {
+          "break_variable": "age",
+          "groups_compared": ["18-24", "55+"],
+          "p_value": 0.01,
+          "significant": true
+        }
+      ],
+      "ai_insight": "Message A wins overall preference (42%), particularly strong with younger consumers. Message C performs consistently across demographics, suggesting broader appeal for mass campaigns."
+    }
+  ]
+}
