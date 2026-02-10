@@ -12,6 +12,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
+      <div className="pt-16">
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/setup" element={<SetupPage />} />
@@ -21,6 +22,7 @@ function App() {
         <Route path="/project/:projectId/launch" element={<LaunchPage />} />
         <Route path="/project/:projectId/status" element={<StatusPage />} />
       </Routes>
+      </div>
     </div>
   );
 }

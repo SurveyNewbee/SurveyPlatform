@@ -293,7 +293,7 @@ export default function ProjectPage() {
       
       {/* Fixed Left Sidebar - Next Steps */}
       {project.survey_json && (
-        <div className="fixed left-0 top-24 w-64 h-[calc(100vh-6rem)] z-10 p-6">
+        <div className="fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] z-10 p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">
             Next Steps
           </h3>
