@@ -6,6 +6,8 @@ import BarChart from '../components/BarChart';
 import GroupedBarChart from '../components/GroupedBarChart';
 import VanWestendorpChart from '../components/VanWestendorpChart';
 import seedPricingData from '../data/seed-pricing-study.json';
+import seedMessageData from '../data/seed-message-testing.json';
+import seedConceptData from '../data/seed-concept-testing.json';
 
 interface ReportData {
   survey_id: string;
@@ -69,6 +71,7 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true);
   const [breakVariable, setBreakVariable] = useState<string>('none');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
+  const [selectedDataset, setSelectedDataset] = useState<'pricing' | 'message' | 'concept'>('pricing');
 
   useEffect(() => {
     loadProject();
@@ -96,10 +99,25 @@ export default function ReportPage() {
     setReportData(seedData);
   };
 
+  // Reload data when dataset selection changes
+  useEffect(() => {
+    if (reportData) {
+      loadReportData();
+    }
+  }, [selectedDataset]);
+
   const generateSeedData = (): ReportData => {
-    // For MVP, return seed data
+    // For MVP, return seed data based on selection
     // In production, this would fetch actual field results
-    return seedPricingData as ReportData;
+    switch (selectedDataset) {
+      case 'message':
+        return seedMessageData as ReportData;
+      case 'concept':
+        return seedConceptData as ReportData;
+      case 'pricing':
+      default:
+        return seedPricingData as ReportData;
+    }
   };
 
   if (loading) {
@@ -146,7 +164,19 @@ export default function ReportPage() {
                 <span>LOI: {reportData.actual_loi_minutes} min</span>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col">
+                <label className="text-xs font-medium text-gray-600 mb-1">Demo Dataset:</label>
+                <select
+                  value={selectedDataset}
+                  onChange={(e) => setSelectedDataset(e.target.value as 'pricing' | 'message' | 'concept')}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="pricing">Pricing Study</option>
+                  <option value="message">Message Testing</option>
+                  <option value="concept">Concept Testing</option>
+                </select>
+              </div>
               <button className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
                 📄 Export PDF
               </button>
