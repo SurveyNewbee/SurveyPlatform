@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProject } from '../api/client';
+import { getProject, getAnalysisResults } from '../api/client';
 import type { Project } from '../types';
 import BarChart from '../components/BarChart';
 import GroupedBarChart from '../components/GroupedBarChart';
@@ -72,6 +72,8 @@ export default function ReportPage() {
   const [breakVariable, setBreakVariable] = useState<string>('none');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
   const [selectedDataset, setSelectedDataset] = useState<'pricing' | 'message' | 'concept'>('pricing');
+  const [dataSource, setDataSource] = useState<'seed' | 'generated'>('seed');
+  const [hasGeneratedData, setHasGeneratedData] = useState(false);
 
   useEffect(() => {
     loadProject();
@@ -93,8 +95,22 @@ export default function ReportPage() {
   };
 
   const loadReportData = async () => {
-    // For MVP, we'll load seed data
-    // In production, this would fetch actual field results
+    if (dataSource === 'generated' && projectId) {
+      try {
+        const response = await getAnalysisResults(projectId);
+        if (response.success && response.data) {
+          setReportData(response.data);
+          setHasGeneratedData(true);
+          return;
+        }
+      } catch (error) {
+        console.error('Error loading generated data:', error);
+        // Fall back to seed data if generated data fails
+        setDataSource('seed');
+      }
+    }
+    
+    // Load seed data
     const seedData = generateSeedData();
     setReportData(seedData);
   };
@@ -104,7 +120,7 @@ export default function ReportPage() {
     if (reportData) {
       loadReportData();
     }
-  }, [selectedDataset]);
+  }, [selectedDataset, dataSource]);
 
   const generateSeedData = (): ReportData => {
     // For MVP, return seed data based on selection
@@ -172,17 +188,48 @@ export default function ReportPage() {
             </div>
             <div className="flex items-center gap-3">
               <div className="flex flex-col">
-                <label className="text-xs font-medium text-gray-600 mb-1">Demo Dataset:</label>
-                <select
-                  value={selectedDataset}
-                  onChange={(e) => setSelectedDataset(e.target.value as 'pricing' | 'message' | 'concept')}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                >
-                  <option value="pricing">Pricing Study</option>
-                  <option value="message">Message Testing</option>
-                  <option value="concept">Concept Testing</option>
-                </select>
+                <label className="text-xs font-medium text-gray-600 mb-1">Data Source:</label>
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setDataSource('seed')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                      dataSource === 'seed'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Example Data
+                  </button>
+                  <button
+                    onClick={() => setDataSource('generated')}
+                    disabled={!hasGeneratedData}
+                    className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                      dataSource === 'generated'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : hasGeneratedData
+                        ? 'text-gray-600 hover:text-gray-900'
+                        : 'text-gray-400 cursor-not-allowed'
+                    }`}
+                    title={!hasGeneratedData ? 'Generate test data first' : ''}
+                  >
+                    Generated Data
+                  </button>
+                </div>
               </div>
+              {dataSource === 'seed' && (
+                <div className="flex flex-col">
+                  <label className="text-xs font-medium text-gray-600 mb-1">Demo Dataset:</label>
+                  <select
+                    value={selectedDataset}
+                    onChange={(e) => setSelectedDataset(e.target.value as 'pricing' | 'message' | 'concept')}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  >
+                    <option value="pricing">Pricing Study</option>
+                    <option value="message">Message Testing</option>
+                    <option value="concept">Concept Testing</option>
+                  </select>
+                </div>
+              )}
               <button className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
                 📄 Export PDF
               </button>

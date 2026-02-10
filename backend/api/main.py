@@ -20,7 +20,7 @@ sys.path.insert(0, str(BACKEND_DIR))  # Add backend to path
 sys.path.insert(0, str(BACKEND_DIR / "core"))  # Add core to path
 
 # Import routes
-from api.routes import brief, survey, project
+from api.routes import brief, survey, project, data, analysis
 
 # Create FastAPI app
 app = FastAPI(
@@ -43,6 +43,8 @@ app.add_middleware(
 app.include_router(brief.router, prefix="/api", tags=["brief"])
 app.include_router(survey.router, prefix="/api", tags=["survey"])
 app.include_router(project.router, prefix="/api", tags=["project"])
+app.include_router(data.router, prefix="/api", tags=["data"])
+app.include_router(analysis.router, prefix="/api", tags=["analysis"])
 
 
 @app.get("/")

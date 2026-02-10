@@ -3,6 +3,7 @@ import type { APIResponse, Project, ExtractedBrief, Skill, ValidationLog } from 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<APIResponse<T>> {
+  console.log(`🌐 fetchAPI called: ${options?.method || 'GET'} ${API_BASE_URL}${endpoint}`);
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
@@ -12,6 +13,7 @@ async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<API
       },
     });
 
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
     if (!response.ok) {
       console.error(`API error: ${response.status} ${response.statusText} for ${endpoint}`);
     }
@@ -358,4 +360,30 @@ export async function applyCommentEditsStream(projectId: string, themeIds: strin
   }
 
   return response.body;
+}
+
+// ==================== DATA GENERATION ====================
+
+export async function generateData(projectId: string) {
+  return fetchAPI<{ status: string; script_path: string; output_path: string; message: string }>('/api/generate-data', {
+    method: 'POST',
+    body: JSON.stringify({ project_id: projectId }),
+  });
+}
+
+export async function getDataStatus(projectId: string) {
+  return fetchAPI<{ has_data: boolean; data_path: string | null; generated_at: string | null }>(`/api/data/${projectId}`);
+}
+
+// ==================== ANALYSIS GENERATION ====================
+
+export async function generateAnalysis(projectId: string) {
+  return fetchAPI<{ status: string; script_path: string; results_path: string; message: string }>('/api/generate-analysis', {
+    method: 'POST',
+    body: JSON.stringify({ project_id: projectId }),
+  });
+}
+
+export async function getAnalysisResults(projectId: string) {
+  return fetchAPI<any>(`/api/results/${projectId}`);
 }

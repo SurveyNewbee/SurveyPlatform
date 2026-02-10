@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProject, generateSurvey, generateSurveyStream, updateProject, updateLOI, pinQuestion, excludeQuestion, resetQuestionOverride, editQuestion, deleteQuestion, reorderQuestion, editSection, addQuestion } from '../api/client';
+import { getProject, generateSurvey, generateSurveyStream, updateProject, updateLOI, pinQuestion, excludeQuestion, resetQuestionOverride, editQuestion, deleteQuestion, reorderQuestion, editSection, addQuestion, generateData, getDataStatus, generateAnalysis } from '../api/client';
 import type { Project, ValidationLogEntry } from '../types';
 import LOISlider from '../components/LOISlider';
 import QuestionCard from '../components/QuestionCard';
 import StreamingModal from '../components/StreamingModal';
 import EditableHeader from '../components/EditableHeader';
 import AddQuestionModal from '../components/AddQuestionModal';
+import DataGenerationModal from '../components/DataGenerationModal';
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -24,10 +25,21 @@ export default function ProjectPage() {
   const [selectedTab, setSelectedTab] = useState<'overview' | 'survey' | 'validation'>('overview');
   const [loiCollapsed, setLoiCollapsed] = useState(false);
   const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
+  
+  // Data generation state
+  const [isGeneratingData, setIsGeneratingData] = useState(false);
+  const [hasData, setHasData] = useState(false);
+  const [dataGenerationError, setDataGenerationError] = useState<string | null>(null);
 
   useEffect(() => {
     loadProject();
   }, [projectId]);
+
+  useEffect(() => {
+    if (project?.id) {
+      checkDataStatus();
+    }
+  }, [project?.id]);
 
   async function loadProject() {
     if (!projectId) return;
@@ -104,6 +116,74 @@ export default function ProjectPage() {
     }
 
     setGenerating(false);
+  }
+
+  async function checkDataStatus() {
+    if (!projectId) return;
+    try {
+      const statusResponse = await getDataStatus(projectId);
+      if (statusResponse.success && statusResponse.data) {
+        setHasData(statusResponse.data.has_data);
+      }
+    } catch (error) {
+      console.error('Error checking data status:', error);
+    }
+  }
+
+  async function handleGenerateData() {
+    console.log('🔵 handleGenerateData CALLED', { projectId, hasProjectId: !!projectId });
+    if (!projectId) {
+      console.log('🔴 No projectId, returning early');
+      return;
+    }
+    
+    console.log('🟢 Setting isGeneratingData to true');
+    setIsGeneratingData(true);
+    setDataGenerationError(null);
+    
+    try {
+      console.log('🟡 Calling generateData API with projectId:', projectId);
+      const response = await generateData(projectId);
+      console.log('🟣 API response received:', response);
+      
+      if (response.success && response.data) {
+        setHasData(true);
+        alert(`Data generated successfully!\n\n${response.data.message || 'Test data has been created.'}`);
+        
+        // Also check if we should automatically generate analysis
+        const shouldGenerateAnalysis = window.confirm('Test data generated successfully! Would you like to generate the analysis now?');
+        if (shouldGenerateAnalysis) {
+          await handleGenerateAnalysis();
+        }
+      } else {
+        setDataGenerationError(response.error || 'Failed to generate data');
+        alert(`Error generating data: ${response.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      setDataGenerationError(errorMsg);
+      alert(`Error generating data: ${errorMsg}`);
+    } finally {
+      setIsGeneratingData(false);
+    }
+  }
+
+  async function handleGenerateAnalysis() {
+    if (!projectId) return;
+    
+    try {
+      const response = await generateAnalysis(projectId);
+      
+      if (response.success && response.data) {
+        alert('Analysis generated successfully! You can now view the report.');
+        // Optionally navigate to report page
+        // navigate(`/project/${projectId}/report`);
+      } else {
+        alert(`Error generating analysis: ${response.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      alert(`Error generating analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   function formatDate(dateString: string) {
@@ -284,6 +364,9 @@ export default function ProjectPage() {
         title="Generating Survey from Blueprint"
         content={streamingContent}
       />
+      <DataGenerationModal
+        isOpen={isGeneratingData}
+      />
       <AddQuestionModal
         isOpen={showAddQuestionModal}
         onClose={() => setShowAddQuestionModal(false)}
@@ -298,6 +381,20 @@ export default function ProjectPage() {
             Next Steps
           </h3>
           <div className="space-y-3">
+            <button
+              onClick={handleGenerateData}
+              disabled={isGeneratingData || !project.survey_json}
+              className={`w-full px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center shadow-md ${
+                isGeneratingData || !project.survey_json
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : hasData
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-purple-600 hover:bg-purple-700 text-white'
+              }`}
+            >
+              <span className="mr-2">{hasData ? '✅' : '🎲'}</span>
+              {isGeneratingData ? 'Generating...' : hasData ? 'Regenerate Test Data' : 'Generate Test Data'}
+            </button>
             <button
               onClick={() => navigate(`/project/${projectId}/preview`)}
               className="w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center shadow-md"
