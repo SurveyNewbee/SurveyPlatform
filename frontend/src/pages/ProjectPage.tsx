@@ -290,7 +290,37 @@ export default function ProjectPage() {
         onAdd={handleAddQuestion}
         sections={modalSections}
       />
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      
+      {/* Fixed Left Sidebar - Next Steps */}
+      {project.survey_json && (
+        <div className="fixed left-0 top-24 w-64 h-[calc(100vh-6rem)] bg-white border-r border-gray-200 shadow-lg z-10 p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            Next Steps
+          </h3>
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate(`/project/${projectId}/preview`)}
+              className="w-full bg-amber-600 hover:bg-amber-700 text-white px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center"
+            >
+              <span className="mr-2">👁️</span> Preview as Respondent
+            </button>
+            <button
+              onClick={() => navigate(`/project/${projectId}/report`)}
+              className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center"
+            >
+              <span className="mr-2">📊</span> Generate Report
+            </button>
+            <button
+              onClick={() => navigate(`/project/${projectId}/launch`)}
+              className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors font-medium text-left flex items-center"
+            >
+              <span className="mr-2">🚀</span> Launch Study
+            </button>
+          </div>
+        </div>
+      )}
+      
+      <div className={`container mx-auto px-4 py-8 max-w-6xl ${project.survey_json ? 'ml-64' : ''}`}>
       {/* Header */}
       <div className="mb-6">
         <button
@@ -645,32 +675,6 @@ export default function ProjectPage() {
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                  Next Steps
-                </h3>
-                <div className="flex space-x-4">
-                  <button
-                    onClick={() => navigate(`/project/${projectId}/preview`)}
-                    className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
-                  >
-                    👁️ Preview as Respondent
-                  </button>
-                  <button
-                    onClick={() => navigate(`/project/${projectId}/report`)}
-                    className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
-                  >
-                    📊 Generate Report
-                  </button>
-                  <button
-                    onClick={() => navigate(`/project/${projectId}/launch`)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors font-medium"
-                  >
-                    🚀 Launch Study
-                  </button>
-                </div>
-              </div>
               </div>
             </>
           ) : (
