@@ -281,7 +281,7 @@ class SurveyGenerator:
         """
         # Path relative to backend directory
         backend_dir = Path(__file__).parent.parent
-        prompt_path = backend_dir / "survey_prompt_template.txt"
+        prompt_path = backend_dir / "survey_prompt_template_v2.txt"
         
         if not prompt_path.exists():
             raise FileNotFoundError(f"Prompt template not found: {prompt_path}")
