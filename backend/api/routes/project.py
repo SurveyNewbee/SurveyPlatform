@@ -86,6 +86,16 @@ async def get_project(project_id: str) -> Dict[str, Any]:
     """
     project = load_project(project_id)
     
+    # Generate UI spec if survey exists
+    if project.get("survey_json"):
+        try:
+            from render_survey import render_ui_spec
+            ui_spec = render_ui_spec(project["survey_json"])
+            project["ui_spec"] = ui_spec
+        except Exception as e:
+            print(f"Failed to generate UI spec: {e}")
+            # Continue without UI spec if generation fails
+    
     return {
         "success": True,
         "data": project

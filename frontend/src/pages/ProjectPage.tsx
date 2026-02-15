@@ -9,6 +9,53 @@ import EditableHeader from '../components/EditableHeader';
 import AddQuestionModal from '../components/AddQuestionModal';
 import DataGenerationModal from '../components/DataGenerationModal';
 
+// Helper function to calculate dynamic LOI breakdown by section
+function calculateDynamicLoiBreakdown(surveyJson: any) {
+  if (!surveyJson) return null;
+  
+  // Initialize section times
+  const sectionTimes: { [key: string]: number } = {};
+  
+  // Helper to add questions from a section
+  const addQuestionTimes = (questions: any[], sectionName: string) => {
+    if (!questions || !Array.isArray(questions)) return;
+    
+    const visibleTime = questions
+      .filter(q => q.loi_visibility === 'visible')
+      .reduce((sum, q) => sum + (q.estimated_seconds || 10), 0);
+    
+    if (visibleTime > 0) {
+      sectionTimes[sectionName] = Math.round(visibleTime / 60 * 10) / 10; // Convert to minutes, 1 decimal
+    }
+  };
+  
+  // Calculate times for each section
+  if (surveyJson.SCREENER?.questions) {
+    addQuestionTimes(surveyJson.SCREENER.questions, 'Screener');
+  }
+  
+  if (surveyJson.MAIN_SECTION?.sub_sections) {
+    surveyJson.MAIN_SECTION.sub_sections.forEach((subsection: any, index: number) => {
+      if (subsection.questions) {
+        const sectionName = subsection.title || `Main Section ${index + 1}`;
+        addQuestionTimes(subsection.questions, sectionName);
+      }
+    });
+  }
+  
+  if (surveyJson.DEMOGRAPHICS?.questions) {
+    addQuestionTimes(surveyJson.DEMOGRAPHICS.questions, 'Demographics');
+  }
+  
+  // Format the times with "minutes" suffix
+  const formattedTimes: { [key: string]: string } = {};
+  Object.entries(sectionTimes).forEach(([section, time]) => {
+    formattedTimes[section] = `${time} minutes`;
+  });
+  
+  return Object.keys(formattedTimes).length > 0 ? formattedTimes : null;
+}
+
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -774,6 +821,142 @@ export default function ProjectPage() {
                         isLast={idx === (project.survey_json.DEMOGRAPHICS.questions?.length || 0) - 1}
                       />
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Programming Specifications */}
+              {project.survey_json.PROGRAMMING_SPECIFICATIONS && (
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Programming Specifications</h3>
+                  <div className="space-y-4 text-sm">
+                    {/* Use dynamic LOI from loi_config if available, otherwise fall back to static */}
+                    <p><strong>Estimated LOI:</strong> {
+                      project.survey_json.loi_config?.estimated_loi_minutes || 
+                      project.survey_json.PROGRAMMING_SPECIFICATIONS.estimated_loi_minutes
+                    } minutes {project.survey_json.loi_config && (
+                      <span className="text-blue-600 text-xs">(live)</span>
+                    )}</p>
+                    
+                    {/* Show question count if we have live data */}
+                    {project.survey_json.loi_config && (
+                      <p><strong>Questions:</strong> {project.survey_json.loi_config.visible_questions} visible, {project.survey_json.loi_config.hidden_questions} hidden</p>
+                    )}
+                    
+                    {/* Show dynamic LOI breakdown */}
+                    {(() => {
+                      const dynamicBreakdown = calculateDynamicLoiBreakdown(project.survey_json);
+                      const hasLoiConfig = !!project.survey_json.loi_config;
+                      const staticBreakdown = project.survey_json.PROGRAMMING_SPECIFICATIONS.loi_breakdown;
+                      
+                      // Use dynamic if available, otherwise fall back to static
+                      const breakdown = dynamicBreakdown || staticBreakdown;
+                      
+                      return breakdown && Object.keys(breakdown).length > 0 && (
+                        <div>
+                          <p className="font-medium mb-2">
+                            LOI Breakdown:
+                            {hasLoiConfig && dynamicBreakdown && (
+                              <span className="text-blue-600 text-xs ml-2">(updates with slider)</span>
+                            )}
+                          </p>
+                          <ul className="ml-4 space-y-1 text-gray-700">
+                            {Object.entries(breakdown).map(([section, time]: [string, any]) => (
+                              <li key={section}>• {section}: {time}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })()}
+                    
+                    {project.survey_json.PROGRAMMING_SPECIFICATIONS.quality_controls && project.survey_json.PROGRAMMING_SPECIFICATIONS.quality_controls.length > 0 && (
+                      <div>
+                        <p className="font-medium mb-2">Quality Controls:</p>
+                        <ul className="ml-4 space-y-1 text-gray-700">
+                          {project.survey_json.PROGRAMMING_SPECIFICATIONS.quality_controls.map((control: string, i: number) => (
+                            <li key={i}>• {control}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {project.survey_json.PROGRAMMING_SPECIFICATIONS.mobile_optimization && (
+                      <p><strong>Mobile:</strong> {project.survey_json.PROGRAMMING_SPECIFICATIONS.mobile_optimization}</p>
+                    )}
+                    
+                    {project.survey_json.PROGRAMMING_SPECIFICATIONS.quota_management && (
+                      <p><strong>Quota Management:</strong> {project.survey_json.PROGRAMMING_SPECIFICATIONS.quota_management}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Artefacts */}
+              {project.survey_json.STUDY_METADATA?.artefacts && project.survey_json.STUDY_METADATA.artefacts.length > 0 && (
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Stimuli / Artefacts</h3>
+                  <div className="space-y-4">
+                    {project.survey_json.STUDY_METADATA.artefacts.map((artefact: any, i: number) => (
+                      <div key={i} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <span className="font-semibold text-gray-800">{artefact.artefact_id}</span>
+                            {artefact.title && <span className="text-gray-600 ml-2">— {artefact.title}</span>}
+                          </div>
+                          {artefact.artefact_type && (
+                            <span className="text-xs uppercase bg-gray-100 px-2 py-1 rounded text-gray-600">
+                              {artefact.artefact_type}
+                            </span>
+                          )}
+                        </div>
+                        {artefact.content && (
+                          <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
+                            {artefact.content}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Analysis Plan */}
+              {project.survey_json.ANALYSIS_PLAN && (
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Analysis Plan</h3>
+                  <div className="space-y-4 text-sm">
+                    {project.survey_json.ANALYSIS_PLAN.primary_analyses && project.survey_json.ANALYSIS_PLAN.primary_analyses.length > 0 && (
+                      <div>
+                        <p className="font-medium mb-2">Primary Analyses:</p>
+                        <ul className="ml-4 space-y-2 text-gray-700">
+                          {project.survey_json.ANALYSIS_PLAN.primary_analyses.map((analysis: string, i: number) => (
+                            <li key={i} className="text-xs leading-relaxed">• {analysis}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {project.survey_json.ANALYSIS_PLAN.deliverables && project.survey_json.ANALYSIS_PLAN.deliverables.length > 0 && (
+                      <div>
+                        <p className="font-medium mb-2">Deliverables:</p>
+                        <ul className="ml-4 space-y-1 text-gray-700">
+                          {project.survey_json.ANALYSIS_PLAN.deliverables.map((deliverable: string, i: number) => (
+                            <li key={i} className="text-xs">• {deliverable}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {project.survey_json.ANALYSIS_PLAN.strategic_outputs && project.survey_json.ANALYSIS_PLAN.strategic_outputs.length > 0 && (
+                      <div>
+                        <p className="font-medium mb-2">Strategic Outputs:</p>
+                        <ul className="ml-4 space-y-1 text-gray-700">
+                          {project.survey_json.ANALYSIS_PLAN.strategic_outputs.map((output: string, i: number) => (
+                            <li key={i} className="text-xs">• {output}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
